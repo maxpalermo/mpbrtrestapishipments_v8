@@ -1,0 +1,25 @@
+{
+    "version": "1.3.9",
+    "name": "mpsoft/mpbrtrestapishipments",
+    "description": "BRT REST API Shipments & Tracking for PrestaShop 8",
+    "type": "prestashop-module",
+    "license": "AFL-3.0",
+    "authors": [
+        {
+            "name": "Massimiliano Palermo",
+            "email": "maxx.palermo@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "setasign/fpdi": "^2.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "MpSoft\\MpBrtRestApiShipments\\": "src/"
+        }
+    },
+    "config": {
+        "vendor-dir": "vendor"
+    }
+}

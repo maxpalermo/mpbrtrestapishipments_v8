@@ -1,0 +1,38 @@
+v1.3.9
+- Fix caricamento asset JS/CSS e rendering modale su controller Symfony AdminOrders tramite actionAdminControllerSetMedia e displayAdminOrderMainBottom.
+
+v1.3.8
+- Pulsante "Crea Segnacollo BRT" nella toolbar di navigazione ordine AdminOrders tramite l'hook actionGetAdminToolbarButtons.
+
+v1.3.7
+- Logica Differenziata Sandbox / Produzione per Codici Pagamento Contrassegno: in Sandbox codPaymentType e codCurrency vengono trasmessi come stringa vuota per conformità con l'account test BRT.
+
+v1.3.6
+- Fix codPaymentType e codCurrency per Contrassegno in conformità con i progetti demo SoapUI ufficiali BRT REST API.
+
+v1.3.5
+- Fix Parametri Contrassegno (COD) per Spedizioni a €0.00: rimozione automatica dei parametri COD se l'importo è 0.
+
+v1.3.4
+- Inversione Layout Pulsanti Modale & Viewer JSON Richiesta: pulsanti d'azione a sinistra, Chiudi a destra e nuovo pulsante "Vedi Richiesta (JSON)".
+
+v1.3.3
+- Spiegazione Chiara Errore -67 Annullamento Spedizioni: aggiunta indicazione dei 5 minuti di attesa minimi richiesti da BRT.
+
+v1.3.2
+- Migliorata Formattazione Messaggi di Errore BRT: inclusione di codeDesc, severity e message nei log e nelle modali.
+
+v1.3.1
+- Fix Spedizioni Manuali Svincolate da ID Ordine.
+- Correzione Payload REST API BRT & Gestione Warning/Errori.
+- Unione PDF Multicollo & Stampa Segnacollo Interattiva con BrtPdfMerger.
+
+v1.3.0
+- Parser Dinamico pricingConditionCode & Validatore Sintattico da Back-Office.
+- Integrazione pulsante "Testa BRT".
+
+v1.2.0
+- Gestione Misure Pacchi & Tabella brt_restapi_weight.
+
+v1.1.7
+- Restyling completo ultra-compatto della scheda di compilazione richiesta segnacollo BRT.

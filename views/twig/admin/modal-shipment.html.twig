@@ -1,0 +1,294 @@
+{# Universal BRT REST API Shipment Dialog Component #}
+<dialog id="brtRestApiDialog" class="brt-modal-dialog">
+	<div
+		class="brt-modal-container">
+		<!-- Modal Header -->
+		<div class="brt-modal-header">
+			<h5 class="brt-modal-title">
+				<i class="material-icons">local_shipping</i>
+				<span>BRT REST API — Gestione Spedizione & Segnacollo</span>
+			</h5>
+			<button type="button" class="brt-modal-close" onclick="brtRestApiCloseDialog()" title="Chiudi">&times;</button>
+		</div>
+
+		<!-- Modal Body -->
+		<div class="brt-modal-body">
+			<div id="brtModalAlert" class="alert d-none mb-2" role="alert"></div>
+
+			<!-- Main Shipment Form -->
+			<form id="brtShipmentForm" onsubmit="return false;">
+				<input type="hidden" name="id_order" id="brt_id_order" value="0">
+				<input type="hidden" id="brt_search_order_id" value="0">
+
+				<div class="d-flex justify-content-between align-items-center mb-2 px-1">
+					<span class="text-muted small font-weight-bold text-uppercase">Scheda compilazione dati spedizione</span>
+					<span class="badge badge-info px-3 py-1 text-uppercase" id="brt_order_ref_badge">
+						Nuova Spedizione Manuale
+					</span>
+				</div>
+
+				<div
+					class="row">
+					<!-- Colonna 1: Dati Destinatario (1/3) -->
+					<div class="col-12 col-lg-4 mb-2 mb-lg-0">
+						<div class="card h-100 mb-0 border">
+							<div class="card-header py-2 px-3 bg-light border-bottom">
+								<h3 class="card-header-title d-flex align-items-center gap-1 mb-0 font-weight-bold" style="font-size:0.9rem;color:#1e293b;">
+									<i class="material-icons text-primary" style="font-size:18px">person</i>
+									<span>Destinatario & Contatti</span>
+								</h3>
+							</div>
+							<div class="card-body p-2 p-md-3">
+								<div class="form-group">
+									<label for="brt_consigneeCompanyName" class="form-control-label small font-weight-bold mb-1">
+										Ragione Sociale / Nome *
+										<span class="text-muted font-weight-normal ml-1" style="font-size:10px">(max 70 car.)</span>
+									</label>
+									<input type="text" class="form-control form-control-sm" id="brt_consigneeCompanyName" name="create_data[consigneeCompanyName]" maxlength="70" required placeholder="Es. Mario Rossi / Azienda Srl">
+								</div>
+
+								<div class="form-group">
+									<label for="brt_consigneeAddress" class="form-control-label small font-weight-bold mb-1">
+										Indirizzo *
+										<span class="text-muted font-weight-normal ml-1" style="font-size:10px">(max 35 car.)</span>
+									</label>
+									<input type="text" class="form-control form-control-sm" id="brt_consigneeAddress" name="create_data[consigneeAddress]" maxlength="35" required placeholder="Via / Piazza e N. Civico">
+								</div>
+
+								<div class="d-flex justify-content-start gap-2">
+									<div class="form-group flex-fill" style="min-width: 80px;">
+										<label for="brt_consigneeZIPCode" class="form-control-label small font-weight-bold mb-1">CAP *</label>
+										<input type="text" class="form-control form-control-sm" id="brt_consigneeZIPCode" name="create_data[consigneeZIPCode]" maxlength="9" required placeholder="40100">
+									</div>
+
+									<div class="form-group" style="width: 55px;">
+										<label for="brt_consigneeProvinceAbbreviation" class="form-control-label small font-weight-bold mb-1">Prov.</label>
+										<input type="text" class="form-control form-control-sm text-uppercase text-center" id="brt_consigneeProvinceAbbreviation" name="create_data[consigneeProvinceAbbreviation]" maxlength="2" placeholder="BO">
+									</div>
+
+									<div class="form-group" style="width: 65px;">
+										<label for="brt_consigneeCountryAbbreviationISOAlpha2" class="form-control-label small font-weight-bold mb-1">Nazione *</label>
+										<input type="text" class="form-control form-control-sm text-uppercase text-center" id="brt_consigneeCountryAbbreviationISOAlpha2" name="create_data[consigneeCountryAbbreviationISOAlpha2]" maxlength="2" value="IT" required>
+									</div>
+								</div>
+
+								<div class="form-group">
+									<label for="brt_consigneeCity" class="form-control-label small font-weight-bold mb-1">Città *</label>
+									<input type="text" class="form-control form-control-sm" id="brt_consigneeCity" name="create_data[consigneeCity]" maxlength="35" required placeholder="Bologna">
+								</div>
+
+								<div class="d-flex justify-content-start gap-2">
+									<div class="form-group flex-fill">
+										<label for="brt_consigneeTelephone" class="form-control-label small font-weight-bold mb-1">Telefono</label>
+										<input type="text" class="form-control form-control-sm" id="brt_consigneeTelephone" name="create_data[consigneeTelephone]" maxlength="35" placeholder="3331234567">
+									</div>
+									<div class="form-group flex-fill">
+										<label for="brt_consigneeMobilePhoneNumber" class="form-control-label small font-weight-bold mb-1">Cellulare</label>
+										<input type="text" class="form-control form-control-sm" id="brt_consigneeMobilePhoneNumber" name="create_data[consigneeMobilePhoneNumber]" maxlength="35" placeholder="3331234567">
+									</div>
+								</div>
+
+								<div class="form-group">
+									<label for="brt_consigneeEMail" class="form-control-label small font-weight-bold mb-1">Email</label>
+									<input type="email" class="form-control form-control-sm" id="brt_consigneeEMail" name="create_data[consigneeEMail]" maxlength="70" placeholder="cliente@email.it">
+								</div>
+
+								<div class="form-group mb-0">
+									<label for="brt_consigneeItalianFiscalCode" class="form-control-label small font-weight-bold mb-1">Cod. Fiscale / P.IVA</label>
+									<input type="text" class="form-control form-control-sm text-uppercase" id="brt_consigneeItalianFiscalCode" name="create_data[consigneeItalianFiscalCode]" maxlength="35" placeholder="Codice fiscale o P.IVA destinatario">
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Colonna 2: Parametri Spedizione & BRT (2/3) -->
+					<div class="col-12 col-lg-8">
+						<div class="card h-100 mb-0 border">
+							<div class="card-header py-2 px-3 bg-light border-bottom">
+								<h3 class="card-header-title d-flex align-items-center gap-1 mb-0 font-weight-bold" style="font-size:0.9rem;color:#1e293b;">
+									<i class="material-icons text-primary" style="font-size:18px">inventory_2</i>
+									<span>Parametri Spedizione & BRT</span>
+								</h3>
+							</div>
+							<div class="card-body p-2 p-md-3">
+								<div class="d-flex justify-content-start gap-2 mb-2">
+									<div class="form-group">
+										<label for="brt_numericSenderReference" class="form-control-label small font-weight-bold mb-1">Rif. Numerico *</label>
+										<input type="number" class="form-control form-control-sm" id="brt_numericSenderReference" name="create_data[numericSenderReference]" required>
+									</div>
+									<div class="form-group">
+										<label for="brt_alphanumericSenderReference" class="form-control-label small font-weight-bold mb-1">Rif. Alfanumerico</label>
+										<input type="text" class="form-control form-control-sm" id="brt_alphanumericSenderReference" name="create_data[alphanumericSenderReference]" maxlength="15" placeholder="Es. ORD1234">
+									</div>
+								</div>
+
+								<div class="d-flex justify-content-start gap-2 mb-2">
+									<div class="form-group">
+										<label for="brt_deliveryFreightTypeCode" class="form-control-label small font-weight-bold mb-1">Porto</label>
+										<select class="form-control form-control-sm" id="brt_deliveryFreightTypeCode" name="create_data[deliveryFreightTypeCode]">
+											<option value="DAP">DAP — Franco</option>
+											<option value="EXW">EXW — Assegnato</option>
+										</select>
+									</div>
+									<div class="form-group">
+										<label for="brt_serviceType" class="form-control-label small font-weight-bold mb-1">Servizio BRT</label>
+										<select class="form-control form-control-sm" id="brt_serviceType" name="create_data[serviceType]">
+											<option value="">Standard</option>
+											<option value="E">Express</option>
+											<option value="H">10:30</option>
+										</select>
+									</div>
+								</div>
+
+								<div class="d-flex justify-content-start gap-2 mb-2">
+									<div class="form-group">
+										<label for="brt_cashOnDelivery" class="form-control-label small font-weight-bold mb-1 text-dark">
+											<i class="material-icons mr-1" style="font-size:14px;vertical-align:middle">payments</i>
+											Contrassegno (€)
+										</label>
+										<input type="number" step="0.01" class="form-control form-control-sm text-right" id="brt_cashOnDelivery" name="create_data[cashOnDelivery]" min="0" value="0.00">
+									</div>
+									<div class="form-group">
+										<label for="brt_codPaymentType" class="form-control-label small font-weight-bold mb-1">Tipo Incasso</label>
+										<select class="form-control form-control-sm" id="brt_codPaymentType" name="create_data[codPaymentType]">
+											<option value="CA">CA — Contanti</option>
+											<option value="BM">BM — Ass. Bancario Mitt.</option>
+											<option value="CM">CM — Ass. Circolare Mitt.</option>
+											<option value="BB">BB — Ass. Bancario Manleva</option>
+										</select>
+									</div>
+								</div>
+
+
+								<!-- Totali Spedizione Globali -->
+								<div class="d-flex justify-content-start gap-2 mb-2 p-2 bg-light rounded border align-items-end">
+									<div class="form-group mb-0 flex-fill">
+										<label for="brt_numberOfParcels" class="form-control-label small font-weight-bold mb-1">Tot. Colli *</label>
+										<input type="number" class="form-control form-control-sm text-center font-weight-bold" id="brt_numberOfParcels" name="create_data[numberOfParcels]" min="1" value="1" required readonly>
+									</div>
+									<div class="form-group mb-0 flex-fill">
+										<label for="brt_weightKG" class="form-control-label small font-weight-bold mb-1">Tot. Peso (KG) *</label>
+										<input type="number" step="0.01" class="form-control form-control-sm text-center font-weight-bold" id="brt_weightKG" name="create_data[weightKG]" min="0.1" value="1.0" required>
+									</div>
+									<div class="form-group mb-0 flex-fill">
+										<label for="brt_volumeM3" class="form-control-label small font-weight-bold mb-1">Tot. Vol. (M³)</label>
+										<input type="number" step="0.001" class="form-control form-control-sm text-center font-weight-bold" id="brt_volumeM3" name="create_data[volumeM3]" min="0" value="0.001">
+									</div>
+								</div>
+
+								<!-- Sezione Dettaglio Misure & Peso Pacchi -->
+								<div class="form-group">
+									<div class="d-flex justify-content-start gap-2 mb-2">
+										<span class="small font-weight-bold text-dark d-flex align-items-center gap-1">
+											<i class="material-icons text-info" style="font-size:16px;">aspect_ratio</i>
+											<span>Misure Pacchi (CM, KG, M³)</span>
+										</span>
+										<button type="button" class="btn btn-outline-primary btn-sm py-0 px-2 d-inline-flex align-items-center gap-1" onclick="brtParcelManager.addParcelRow()">
+											<i class="material-icons" style="font-size:14px;">add</i>
+											<span style="font-size:11px;">Aggiungi Pacco</span>
+										</button>
+									</div>
+
+									<table class="table table-sm table-bordered mb-0 align-middle text-center" id="brt_parcels_table" style="font-size:12px;">
+										<thead class="bg-light">
+											<tr>
+												<th style="width:10%;">Prog.</th>
+												<th style="width:20%;">Peso (kg)</th>
+												<th style="width:16%;">X (cm)</th>
+												<th style="width:16%;">Y (cm)</th>
+												<th style="width:16%;">Z (cm)</th>
+												<th style="width:16%;">Vol. (m³)</th>
+												<th style="width:6%;">
+													<i class="material-icons" style="font-size:14px;">mail</i>
+												</th>
+												<th style="width:6%;"></th>
+											</tr>
+										</thead>
+										<tbody
+											id="brt_parcels_table_body"><!-- Le righe dei pacchi verranno generate dinamicamente dal JS -->
+										</tbody>
+									</table>
+
+								</div>
+
+
+								<div class="d-flex justify-content-start gap-2 mb-2">
+									<div class="form-group">
+										<label for="brt_notes" class="form-control-label small font-weight-bold mb-1">
+											Note per il Corriere
+											<span class="text-muted font-weight-normal ml-1" style="font-size:10px">(max 70 car.)</span>
+										</label>
+										<textarea class="form-control" id="brt_notes" name="create_data[notes]" maxlength="70" placeholder="Es. Consegnare ore pomeridiane"></textarea>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</form>
+		</div>
+
+		<!-- Modal Footer -->
+		<div class="brt-modal-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
+			<div class="d-flex flex-wrap align-items-center gap-2">
+				<button type="button" class="btn btn-success btn-sm font-weight-bold d-inline-flex align-items-center gap-1" id="btnBrtCreateShipment" onclick="brtRestApiCreateShipment()">
+					<i class="material-icons" style="font-size:16px">send</i>
+					<span>Crea Segnacollo BRT (POST)</span>
+				</button>
+
+				<button type="button" class="btn btn-outline-info btn-sm d-inline-flex align-items-center gap-1" id="btnBrtViewRequest" onclick="brtRestApiViewRequestJson()">
+					<i class="material-icons" style="font-size:16px">code</i>
+					<span>Vedi Richiesta (JSON)</span>
+				</button>
+
+				<button type="button" class="btn btn-info btn-sm text-white d-inline-flex align-items-center gap-1" id="btnBrtPrintLabel" onclick="brtRestApiPrintLabel()" disabled>
+					<i class="material-icons" style="font-size:16px">print</i>
+					<span>Stampa Segnacollo PDF</span>
+				</button>
+
+				<button type="button" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-1" id="btnBrtDeleteShipment" onclick="brtRestApiDeleteShipment()">
+					<i class="material-icons" style="font-size:16px">delete</i>
+					<span>Annulla Spedizione (PUT)</span>
+				</button>
+			</div>
+			<div>
+				<button type="button" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1" onclick="brtRestApiCloseDialog()">
+					<i class="material-icons" style="font-size:16px">close</i>
+					<span>Chiudi</span>
+				</button>
+			</div>
+		</div>
+	</div>
+</dialog>
+
+{# Select Order Prompt Dialog Component #}
+<dialog id="brtSelectOrderDialog" class="brt-modal-dialog" style="max-width: 440px;">
+	<div class="brt-modal-container">
+		<form id="brtSelectOrderForm" onsubmit="event.preventDefault(); brtRestApiSubmitSelectOrder(); return false;">
+			<div class="card mb-0">
+				<div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2 px-3">
+					<h5 class="modal-title mb-0 d-flex align-items-center gap-2 font-weight-bold" style="font-size:1rem;">
+						<i class="material-icons">add_shopping_cart</i>
+						<span>Nuovo Segnacollo da Ordine</span>
+					</h5>
+					<button type="button" class="close text-white opacity-80" onclick="brtRestApiCloseSelectOrderDialog()">&times;</button>
+				</div>
+				<div class="card-body p-3 p-md-4">
+					<div class="form-group mb-0">
+						<label for="brt_prompt_order_id" class="form-control-label font-weight-bold mb-2">
+							Inserisci l'ID dell'ordine PrestaShop:
+						</label>
+						<input type="number" id="brt_prompt_order_id" class="form-control form-control-lg" placeholder="Es. 1234" min="1" onkeydown="if(event.key==='Enter'){event.preventDefault();event.stopPropagation();brtRestApiSubmitSelectOrder();}">
+					</div>
+				</div>
+				<div class="card-footer d-flex justify-content-end align-items-center gap-2 py-2 px-3">
+					<button type="button" class="btn btn-outline-secondary btn-sm" onclick="brtRestApiCloseSelectOrderDialog()">Annulla</button>
+					<button type="submit" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+						<i class="material-icons" style="font-size:16px">download</i>
+						<span>Carica Dati Ordine</span>
+					</button>
+				</div>
+			</div>
+		</form>
+	</div>
+</dialog>

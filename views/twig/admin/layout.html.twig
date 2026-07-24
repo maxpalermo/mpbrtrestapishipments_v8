@@ -1,0 +1,60 @@
+<script>
+  window.brtAdminUrl = '{{ admin_url|e('js') }}';
+</script>
+
+<div class="mpbrtrestapi-admin" id="mpbrtrestapi-admin">
+
+  {% if messages.success is defined %}
+    <div class="alert alert-success d-flex align-items-center mb-3">
+      <i class="material-icons mr-2">check_circle</i>
+      <span>{{ messages.success }}</span>
+    </div>
+  {% endif %}
+  {% if messages.error is defined %}
+    <div class="alert alert-danger d-flex align-items-center mb-3">
+      <i class="material-icons mr-2">error</i>
+      <span>{{ messages.error }}</span>
+    </div>
+  {% endif %}
+
+  {# Tab navigation standard PrestaShop 8 / Bootstrap #}
+  <ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link{% if current_tab == 'settings' %} active{% endif %}" href="{{ admin_url }}&tab=settings">
+        <i class="material-icons mr-1">settings</i> Impostazioni
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link{% if current_tab == 'shipments' %} active{% endif %}" href="{{ admin_url }}&tab=shipments">
+        <i class="material-icons mr-1">local_shipping</i> Spedizioni & Borderò
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link{% if current_tab == 'tracking' %} active{% endif %}" href="{{ admin_url }}&tab=tracking">
+        <i class="material-icons mr-1">track_changes</i> Tracking
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link{% if current_tab == 'stats' %} active{% endif %}" href="{{ admin_url }}&tab=stats">
+        <i class="material-icons mr-1">bar_chart</i> Statistiche
+      </a>
+    </li>
+  </ul>
+
+  {# Tab content #}
+  <div class="tab-content">
+    {% if current_tab == 'settings' %}
+      {% include '@ModuleTwig/admin/tab_settings.html.twig' %}
+    {% elseif current_tab == 'shipments' %}
+      {% include '@ModuleTwig/admin/tab_shipments.html.twig' %}
+    {% elseif current_tab == 'tracking' %}
+      {% include '@ModuleTwig/admin/tab_tracking.html.twig' %}
+    {% elseif current_tab == 'stats' %}
+      {% include '@ModuleTwig/admin/tab_stats.html.twig' %}
+    {% endif %}
+  </div>
+
+  {# Universal Modal Component #}
+  {% include '@ModuleTwig/admin/modal-shipment.html.twig' %}
+
+</div>

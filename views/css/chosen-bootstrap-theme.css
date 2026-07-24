@@ -1,0 +1,165 @@
+/* 
+ *  chzn-bootstrap-theme - v1.0.5
+ *  Author: Weston Ganger (GitHub: @westonganger)
+ *  Homepage: https://github.com/westonganger/chzn-bootstrap-theme
+ */
+.chzn-container.chzn-container-single .chzn-single {
+  display: block;
+  width: 100%;
+  height: 32px;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 1.388571429;
+  color: #555;
+  vertical-align: middle;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  -webkit-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+  transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+  background-image: none;
+}
+
+.chzn-container.chzn-container-single .chzn-single div {
+  top: 4px;
+  color: #000;
+}
+
+.chzn-container.chzn-container-single.chzn-container-active .chzn-single,
+.chzn-container.chzn-container-single .chzn-search input[type=text]:focus {
+  border-color: #66AFE9;
+  outline: 0;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6);
+}
+
+.chzn-container.chzn-container-single.chzn-disabled .chzn-single {
+  background-color: #EEE;
+  color: black;
+}
+
+.chzn-container .chzn-drop {
+  background-color: #FFF;
+  border: none;
+  border-radius: 4px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+  background-clip: padding-box;
+  margin: 1px 0 0 0;
+  padding-top: 1px;
+}
+
+.chzn-container.chzn-with-drop .chzn-drop {
+  border: 1px solid #CCC;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.chzn-container .chzn-search input[type=text] {
+  display: block;
+  width: 100%;
+  height: 32px;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 1.388571429;
+  color: #555;
+  vertical-align: middle;
+  background-color: #FFF;
+  border: 1px solid #CCC;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  -webkit-transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+  transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+  background-image: none;
+}
+
+.chzn-container .chzn-results {
+  margin: 2px 0 0;
+  padding: 5px 0;
+  font-size: 14px;
+  list-style: none;
+  background-color: #fff;
+  margin-bottom: 5px;
+}
+
+.chzn-container .chzn-results li {
+  display: block;
+  padding: 3px 20px;
+  clear: both;
+  font-weight: normal;
+  line-height: 1.388571429;
+  color: #333;
+  background-image: none;
+}
+
+.chzn-container .chzn-results li.active-result {
+  display: block;
+  padding: 3px 20px;
+  clear: both;
+  font-weight: normal;
+  line-height: 1.388571429;
+  color: #333;
+  background-image: none;
+}
+
+.chzn-container .chzn-results li:hover,
+.chzn-container .chzn-results li.active-result:hover,
+.chzn-container .chzn-results li.highlighted {
+  color: #FFF;
+  text-decoration: none;
+  background-color: #428BCA;
+  background-image: none;
+}
+
+.chzn-container.chzn-container-multi .chzn-results li.result-selected {
+  display: list-item;
+  color: #ccc;
+  cursor: default;
+  background-color: white;
+}
+
+.chzn-container.chzn-container-multi .chzn-choices {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  font-size: 14px;
+  line-height: 1;
+  color: #555;
+  vertical-align: middle;
+  background-color: #FFF;
+  border: 1px solid #CCC;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  -webkit-transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+  transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+  background-image: none;
+}
+
+.chzn-container.chzn-container-multi .chzn-choices li.search-field input[type="text"] {
+  padding: 5px 0;
+}
+
+.chzn-container.chzn-container-multi .chzn-choices li.search-choice {
+  background-image: none;
+  padding: 2px 24px 2px 5px;
+  margin: 2px 6px 0 0;
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 1.388571429;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  color: #333;
+  background-color: #FFF;
+  border-color: #CCC;
+}
+
+.chzn-container.chzn-container-multi .chzn-choices li.search-choice .search-choice-close {
+  top: 6px;
+  right: 6px;
+}
+
+.chzn-container.chzn-container-multi.chzn-container-active .chzn-choices {
+  border-color: #66AFE9;
+  outline: 0;
+}

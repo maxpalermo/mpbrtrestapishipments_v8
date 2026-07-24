@@ -1,0 +1,207 @@
+{# Borderò Spedizioni non ancora stampate #}
+<div class="card mb-4">
+	<div class="card-header d-flex justify-content-between align-items-center">
+		<h3 class="mb-0">
+			<i class="material-icons mr-1">assignment</i>
+			Borderò Spedizioni (Da Stampare)
+		</h3>
+		{% if tab_bordero %}
+			<a href="{{ admin_url }}&action=printBordero" target="_blank" class="btn btn-success btn-sm">
+				<i class="material-icons">print</i>
+				Stampa Borderò Giornaliero PDF
+			</a>
+		{% endif %}
+	</div>
+	<div class="card-body p-0">
+		<div class="table-responsive">
+			<table class="table table-striped table-hover mb-0">
+				<thead class="thead-light">
+					<tr>
+						<th>#</th>
+						<th>Rif. Ordine</th>
+						<th>Destinatario</th>
+						<th>Città</th>
+						<th>Range Pacchi</th>
+						<th class="text-center">Colli</th>
+						<th class="text-right">Peso</th>
+						<th class="text-right">Contrassegno</th>
+						<th>Data Generazione</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% if tab_bordero %}
+						{% for b in tab_bordero %}
+							<tr>
+								<td>{{ b.id_brt_restapi_bordero }}</td>
+								<td>
+									<strong>{{ b.alphanumeric_sender_reference ? b.alphanumeric_sender_reference : ('#' ~ b.id_order) }}</strong>
+								</td>
+								<td>{{ b.consignee_company_name|e }}</td>
+								<td>{{ b.consignee_city|e }}</td>
+								<td>
+									<span class="badge badge-info">{{ b.parcel_number_from }}
+										→
+										{{ b.parcel_number_to }}</span>
+								</td>
+								<td class="text-center">{{ b.number_of_parcels }}</td>
+								<td class="text-right">{{ b.weight_kg }}
+									kg</td>
+								<td class="text-right">
+									{% if b.cash_on_delivery > 0 %}
+										<span class="badge badge-warning">€
+											{{ b.cash_on_delivery|number_format(2, ',', '.') }}</span>
+									{% else %}
+										<span class="text-muted">-</span>
+									{% endif %}
+								</td>
+								<td>
+									<small class="text-muted">{{ b.date_add }}</small>
+								</td>
+							</tr>
+						{% endfor %}
+					{% else %}
+						<tr>
+							<td colspan="9" class="text-center py-4 text-muted">
+								<i class="material-icons d-block mb-1" style="font-size:32px;">check_circle_outline</i>
+								Nessuna spedizione in attesa di Borderò. Tutte le spedizioni correnti risultano stampate.
+							</td>
+						</tr>
+					{% endif %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+{# Registro Spedizioni BRT #}
+<div class="card">
+	<div class="card-header d-flex justify-content-between align-items-center">
+		<h3 class="mb-0">
+			<i class="material-icons mr-1">local_shipping</i>
+			Registro Spedizioni BRT (Ultimi 50 record)
+		</h3>
+		<div class="d-flex align-items-center gap-2">
+			<button type="button" class="btn btn-default" onclick="brtRestApiNewManualShipment()">
+				<i class="material-icons mr-1">add</i>
+				NUOVO SEGNACOLLO
+			</button>
+			<button type="button" class="btn btn-default" onclick="brtRestApiNewFromOrder()">
+				<i class="material-icons mr-1">add_shopping_cart</i>
+				NUOVO SEGNACOLLO DA ORDINE
+			</button>
+			<button type="button" class="btn btn-default" onclick="location.reload();">
+				<i class="material-icons mr-1">refresh</i>
+				Aggiorna
+			</button>
+		</div>
+	</div>
+	<div class="card-body p-0">
+		<div class="table-responsive">
+			<table class="table table-striped table-hover mb-0">
+				<thead class="thead-light">
+					<tr>
+						<th>#</th>
+						<th>Ordine</th>
+						<th>Rif. Numerico</th>
+						<th>Rif. Alfanumerico</th>
+						<th>Colli</th>
+						<th>Filiale / Depot</th>
+						<th>Zona</th>
+						<th>Esito</th>
+						<th>Ambiente</th>
+						<th>Data</th>
+						<th class="text-right">Azioni</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% if tab_shipments %}
+						{% for ship in tab_shipments %}
+							<tr>
+								<td>{{ ship.id_brt_restapi_shipment_response }}</td>
+								<td>
+									{% if ship.id_order %}
+										<a href="{{ admin_url_orders }}&id_order={{ ship.id_order }}&vieworder" target="_blank" class="font-weight-bold">
+											#{{ ship.id_order }}
+										</a>
+									{% else %}
+										<span class="text-muted">—</span>
+									{% endif %}
+								</td>
+								<td>
+									<code>{{ ship.numeric_sender_reference }}</code>
+								</td>
+								<td>{{ ship.alphanumeric_sender_reference|e }}</td>
+								<td>
+									{% if ship.parcel_number_from %}
+										<span class="badge badge-info">{{ ship.parcel_number_from }}
+											→
+											{{ ship.parcel_number_to }}</span>
+									{% else %}
+										<span class="text-muted">—</span>
+									{% endif %}
+								</td>
+								<td>
+									{% if ship.arrival_depot %}
+										<span>{{ ship.arrival_depot }}
+											/
+											{{ ship.arrival_terminal }}</span>
+									{% else %}
+										<span class="text-muted">—</span>
+									{% endif %}
+								</td>
+								<td>
+									{% if ship.delivery_zone %}
+										<span class="badge badge-secondary">{{ ship.delivery_zone }}</span>
+									{% else %}
+										<span class="text-muted">—</span>
+									{% endif %}
+								</td>
+								<td>
+									{% if ship.execution_code == 0 %}
+										<span class="badge badge-success">
+											<i class="material-icons" style="font-size:12px">check</i>
+											OK</span>
+									{% else %}
+										<span class="badge badge-danger" title="{{ ship.execution_message|e }}">
+											<i class="material-icons" style="font-size:12px">error</i>
+											{{ ship.execution_code }}
+										</span>
+									{% endif %}
+								</td>
+								<td>
+									{% if ship.sandbox %}
+										<span class="badge badge-warning">
+											<i class="material-icons" style="font-size:12px">science</i>
+											Sandbox</span>
+									{% else %}
+										<span class="badge badge-success">
+											<i class="material-icons" style="font-size:12px">verified</i>
+											Prod</span>
+									{% endif %}
+								</td>
+								<td>
+									<small class="text-muted">{{ ship.date_add }}</small>
+								</td>
+								<td class="text-right">
+									<button class="btn btn-outline-info btn-sm btn-get-label" data-numeric="{{ ship.numeric_sender_reference }}" title="Stampa etichetta segnacollo">
+										<i class="material-icons">print</i>
+									</button>
+									<button class="btn btn-outline-danger btn-sm btn-delete-shipment" data-numeric="{{ ship.numeric_sender_reference }}" title="Annulla spedizione BRT">
+										<i class="material-icons">delete</i>
+									</button>
+								</td>
+							</tr>
+						{% endfor %}
+					{% else %}
+						<tr>
+							<td colspan="11" class="text-center py-4 text-muted">
+								<i class="material-icons d-block mb-1" style="font-size:32px">local_shipping</i>
+								Nessuna spedizione trovata nel registro.
+							</td>
+						</tr>
+					{% endif %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>

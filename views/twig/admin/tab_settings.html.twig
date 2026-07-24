@@ -1,0 +1,404 @@
+<form method="post" action="{{ admin_url }}&tab=settings" id="form-brt-settings">
+	<input type="hidden" name="submitSettings" value="1">
+
+	{# ── Sandbox banner ────────────────────────────────────────────────────── #}
+	{% if config.MPBRTRESTAPI_SANDBOX_ENABLED %}
+		<div class="alert alert-warning d-flex align-items-center mb-3">
+			<i class="material-icons mr-2">science</i>
+			<span><strong>Modalità SANDBOX attiva</strong> — le spedizioni vengono inviate all'ambiente di test BRT.</span>
+		</div>
+	{% endif %}
+
+	{# ── Account ───────────────────────────────────────────────────────────── #}
+	<div class="card mb-4">
+		<h3 class="card-header">
+			<i class="material-icons mr-1">manage_accounts</i>
+			Credenziali Account BRT
+		</h3>
+		<div class="card-body">
+			<div class="row">
+				{# Produzione #}
+				<div class="col-md-6">
+					<div class="p-3 border rounded bg-light mb-3 mb-md-0">
+						<h5 class="text-success font-weight-bold mb-3">
+							<i class="material-icons mr-1" style="font-size:18px;vertical-align:text-bottom">verified</i>
+							Produzione
+						</h5>
+						<div class="form-group">
+							<label class="form-control-label">Account ID (userID)</label>
+							<input type="text" class="form-control" name="MPBRTRESTAPI_ACCOUNT_USER_ID" value="{{ config.MPBRTRESTAPI_ACCOUNT_USER_ID|e }}" placeholder="es. 12345">
+						</div>
+						<div class="form-group">
+							<label class="form-control-label">Account Password</label>
+							<input type="password" class="form-control" name="MPBRTRESTAPI_ACCOUNT_PASSWORD" value="{{ config.MPBRTRESTAPI_ACCOUNT_PASSWORD|e }}">
+						</div>
+						<div class="row">
+							<div class="col-6">
+								<div class="form-group mb-0">
+									<label class="form-control-label">Departure Depot</label>
+									<input type="text" class="form-control" name="MPBRTRESTAPI_ACCOUNT_DEPARTURE_DEPOT" value="{{ config.MPBRTRESTAPI_ACCOUNT_DEPARTURE_DEPOT|e }}" placeholder="es. 102">
+								</div>
+							</div>
+							<div class="col-6">
+								<div class="form-group mb-0">
+									<label class="form-control-label">Codice Cliente</label>
+									<input type="text" class="form-control" name="MPBRTRESTAPI_ACCOUNT_CUSTOMER_CODE" value="{{ config.MPBRTRESTAPI_ACCOUNT_CUSTOMER_CODE|e }}">
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{# Sandbox #}
+				<div class="col-md-6">
+					<div class="p-3 border rounded bg-light">
+						<h5 class="text-warning font-weight-bold mb-3">
+							<i class="material-icons mr-1" style="font-size:18px;vertical-align:text-bottom">science</i>
+							Sandbox (Test)
+						</h5>
+						<div class="form-group">
+							<label class="form-control-label">Account ID (userID)</label>
+							<input type="text" class="form-control" name="MPBRTRESTAPI_SANDBOX_USER_ID" value="{{ config.MPBRTRESTAPI_SANDBOX_USER_ID|e }}" placeholder="es. DEMO123">
+						</div>
+						<div class="form-group">
+							<label class="form-control-label">Account Password</label>
+							<input type="password" class="form-control" name="MPBRTRESTAPI_SANDBOX_PASSWORD" value="{{ config.MPBRTRESTAPI_SANDBOX_PASSWORD|e }}">
+						</div>
+						<div class="row mb-3">
+							<div class="col-6">
+								<div class="form-group mb-0">
+									<label class="form-control-label">Departure Depot</label>
+									<input type="text" class="form-control" name="MPBRTRESTAPI_SANDBOX_DEPARTURE_DEPOT" value="{{ config.MPBRTRESTAPI_SANDBOX_DEPARTURE_DEPOT|e }}">
+								</div>
+							</div>
+							<div class="col-6">
+								<div class="form-group mb-0">
+									<label class="form-control-label">Codice Cliente</label>
+									<input type="text" class="form-control" name="MPBRTRESTAPI_SANDBOX_CUSTOMER_CODE" value="{{ config.MPBRTRESTAPI_SANDBOX_CUSTOMER_CODE|e }}">
+								</div>
+							</div>
+						</div>
+						<div class="form-group mb-0">
+							<div class="custom-control custom-checkbox">
+								<input type="checkbox" class="custom-control-input" id="MPBRTRESTAPI_SANDBOX_ENABLED" name="MPBRTRESTAPI_SANDBOX_ENABLED" value="1" {% if config.MPBRTRESTAPI_SANDBOX_ENABLED %} checked {% endif %}>
+								<label class="custom-control-label font-weight-bold" for="MPBRTRESTAPI_SANDBOX_ENABLED">
+									Attiva modalità SANDBOX (Invia richieste a server di test BRT)
+								</label>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	{# ── Parametri spedizione ──────────────────────────────────────────────── #}
+	<div class="card mb-4">
+		<h3 class="card-header">
+			<i class="material-icons mr-1">inventory_2</i>
+			Parametri Spedizione
+		</h3>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-4">
+					<div class="form-group">
+						<label class="form-control-label">Network</label>
+						<select class="form-control chosen" name="MPBRTRESTAPI_NETWORK" data-placeholder="Seleziona network...">
+							{% for val, lbl in network_options %}
+								<option value="{{ val|e }}" {% if config.MPBRTRESTAPI_NETWORK == val %} selected {% endif %}>
+									{{ lbl|e }}
+								</option>
+							{% endfor %}
+						</select>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="form-group">
+						<label class="form-control-label">Porto (Freight Type)</label>
+						<select class="form-control chosen" name="MPBRTRESTAPI_FREIGHT_TYPE" data-placeholder="Seleziona porto...">
+							{% for val, lbl in freight_type_options %}
+								<option value="{{ val|e }}" {% if config.MPBRTRESTAPI_FREIGHT_TYPE == val %} selected {% endif %}>
+									{{ lbl|e }}
+								</option>
+							{% endfor %}
+						</select>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="form-group">
+						<label class="form-control-label">Tipo Servizio</label>
+						<select class="form-control chosen" name="MPBRTRESTAPI_SERVICE_TYPE" data-placeholder="Seleziona servizio...">
+							{% for val, lbl in service_type_options %}
+								<option value="{{ val|e }}" {% if config.MPBRTRESTAPI_SERVICE_TYPE == val %} selected {% endif %}>
+									{{ lbl|e }}
+								</option>
+							{% endfor %}
+						</select>
+					</div>
+				</div>
+			</div>
+			<div class="form-group">
+				<label class="form-control-label">Natura Merci (note di default)</label>
+				<input type="text" class="form-control" name="MPBRTRESTAPI_NATURA_MERCI" value="{{ config.MPBRTRESTAPI_NATURA_MERCI|e }}" placeholder="es. Abbigliamento">
+			</div>
+			<div class="form-group mb-0">
+				<label class="form-control-label">Moduli Pagamento Contrassegno (COD)</label>
+				<select class="form-control chosen" name="MPBRTRESTAPI_COD_PAYMENT_MODULES[]" multiple data-placeholder="Seleziona moduli COD...">
+					{% for pm in payment_modules %}
+						<option value="{{ pm.name|e }}" {% if pm.name in selected_cod_modules %} selected {% endif %}>
+							{{ pm.display_name|e }}
+						</option>
+					{% endfor %}
+				</select>
+			</div>
+		</div>
+	</div>
+
+	{# ── Regole Dinamiche Codice Tariffario (pricingConditionCode) ──────────── #}
+	<div class="card mb-4">
+		<div class="card-header d-flex justify-content-between align-items-center">
+			<h3 class="mb-0 d-flex align-items-center gap-2" style="font-size:1rem;">
+				<i class="material-icons text-primary">rule</i>
+				<span>Regole Dinamiche Codice Tariffario (pricingConditionCode)</span>
+			</h3>
+			<button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1" onclick="brtPricingRules.addRuleRow()">
+				<i class="material-icons" style="font-size:16px;">add</i>
+				<span>Aggiungi Regola</span>
+			</button>
+		</div>
+		<div class="card-body p-3">
+			<p class="text-muted small mb-3">
+				Configura le regole condizionali ordinate per priorità per l'assegnazione automatica del <code>pricingConditionCode</code> nelle spedizioni BRT. Le condizioni vengono valutate dall'alto verso il basso.
+			</p>
+
+			<table class="table table-bordered table-sm align-middle text-center mb-0" id="brt_pricing_rules_table">
+				<thead class="bg-light">
+					<tr>
+						<th style="width:5%;">#</th>
+						<th style="width:60%;">Condizione (SE)</th>
+						<th style="width:25%;">Codice Tariffario (pricingConditionCode)</th>
+						<th style="width:10%;">Azioni</th>
+					</tr>
+				</thead>
+				<tbody id="brt_pricing_rules_body">
+					{# Righe inserite e gestite via JS #}
+				</tbody>
+				<tfoot>
+					<tr class="bg-light">
+						<td colspan="2" class="text-right font-weight-bold align-middle">
+							Codice Tariffario Predefinito di Fallback (ELSE):
+						</td>
+						<td class="align-middle">
+							<div class="input-group input-group-sm flex-nowrap" style="max-width:180px; margin:0 auto;">
+								<input type="text" class="form-control form-control-sm text-center font-weight-bold" id="MPBRTRESTAPI_PRICING_DEFAULT_CODE" name="MPBRTRESTAPI_PRICING_DEFAULT_CODE" value="{{ pricing_default_code|e }}" placeholder="es. 020">
+								<div class="input-group-append input-group-btn">
+									<button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('MPBRTRESTAPI_PRICING_DEFAULT_CODE').value='VUOTO';" title="Inserisci valore VUOTO">
+										<span class="font-weight-bold" style="font-size:11px;">VUOTO</span>
+									</button>
+								</div>
+							</div>
+						</td>
+						<td></td>
+					</tr>
+					<tr>
+						<td colspan="100%" class="p-2 bg-white text-left">
+							<button type="button" class="btn btn-sm btn-outline-info w-100 d-flex justify-content-between align-items-center" data-toggle="collapse" data-target="#brtFieldsToggleContainer" aria-expanded="false">
+								<span class="d-inline-flex align-items-center gap-1 font-weight-bold">
+									<i class="material-icons" style="font-size:16px;">touch_app</i>
+									<span>Mostra / Nascondi Campi Disponibili per le Regole (Clicca su un tag per inserirlo)</span>
+								</span>
+								<i class="material-icons">keyboard_arrow_down</i>
+							</button>
+							<div class="collapse mt-2 p-3 bg-light rounded border" id="brtFieldsToggleContainer">
+								<div class="d-flex flex-wrap gap-2 mb-2">
+									{% for fieldTag, desc in available_fields %}
+										<span class="badge badge-info p-2 font-weight-bold cursor-pointer brt-field-tag" style="font-size:12px; cursor:pointer;" onclick="brtPricingRules.insertTag('{{ fieldTag|e }}')" title="{{ desc|e }}">
+											<i class="material-icons mr-1" style="font-size:12px;vertical-align:middle;">add_circle_outline</i>
+											{{ fieldTag|e }}
+										</span>
+									{% endfor %}
+								</div>
+								<small class="text-muted d-block">
+									<i class="material-icons mr-1" style="font-size:14px;vertical-align:middle;">info</i>
+									Seleziona prima il campo di testo di una condizione, poi clicca su uno dei tag qui sopra per inserirlo senza errori di digitazione.
+								</small>
+							</div>
+						</td>
+					</tr>
+				</tfoot>
+			</table>
+		</div>
+	</div>
+
+
+	{# ── Gestione stati ordine ─────────────────────────────────────────────── #}
+	<div class="card mb-4">
+		<h3 class="card-header">
+			<i class="material-icons mr-1">fact_check</i>
+			Gestione Stati Ordine
+		</h3>
+		<div class="card-body">
+			<div class="form-group">
+				<label class="form-control-label">Mostra pulsante BRT negli ordini con questi stati</label>
+				<select class="form-control chosen" name="MPBRTRESTAPI_ORDERSTATES_DISPLAY[]" multiple data-placeholder="Seleziona stati ordine...">
+					{% for state in order_states %}
+						<option value="{{ state.id_order_state }}" {% if state.id_order_state in selected_order_states %} selected {% endif %}>
+							{{ state.name|e }}
+						</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="form-group">
+				<label class="form-control-label">Cambia stato ordine dopo la creazione spedizione</label>
+				<select class="form-control chosen" name="MPBRTRESTAPI_ORDERSTATE_CHANGE" data-placeholder="Nessun cambio automatico">
+					<option value="">-- Nessun cambio --</option>
+					{% for state in order_states %}
+						<option value="{{ state.id_order_state }}" {% if config.MPBRTRESTAPI_ORDERSTATE_CHANGE == state.id_order_state %} selected {% endif %}>
+							{{ state.name|e }}
+						</option>
+					{% endfor %}
+				</select>
+			</div>
+		</div>
+	</div>
+
+	{# ── Parametri etichetta ───────────────────────────────────────────────── #}
+	<div class="card mb-4">
+		<h3 class="card-header">
+			<i class="material-icons mr-1">label</i>
+			Parametri Etichetta
+		</h3>
+		<div class="card-body">
+			<div class="row align-items-end">
+				<div class="col-md-3">
+					<div class="form-group mb-md-0">
+						<label class="form-control-label">Tipo Output</label>
+						<select class="form-control chosen" name="MPBRTRESTAPI_LABEL_OUTPUT_TYPE">
+							{% for val, lbl in label_output_options %}
+								<option value="{{ val|e }}" {% if config.MPBRTRESTAPI_LABEL_OUTPUT_TYPE == val %} selected {% endif %}>
+									{{ lbl|e }}
+								</option>
+							{% endfor %}
+						</select>
+					</div>
+				</div>
+				<div class="col-md-3">
+					<div class="form-group mb-md-0">
+						<label class="form-control-label">Formato Etichetta</label>
+						<select class="form-control chosen" name="MPBRTRESTAPI_LABEL_FORMAT">
+							{% for val, lbl in label_format_options %}
+								<option value="{{ val|e }}" {% if config.MPBRTRESTAPI_LABEL_FORMAT == val %} selected {% endif %}>
+									{{ lbl|e }}
+								</option>
+							{% endfor %}
+						</select>
+					</div>
+				</div>
+				<div class="col-md-2">
+					<div class="form-group mb-md-0">
+						<label class="form-control-label">Offset X (mm)</label>
+						<input type="number" class="form-control" name="MPBRTRESTAPI_LABEL_OFFSET_X" value="{{ config.MPBRTRESTAPI_LABEL_OFFSET_X|default(0) }}" min="0">
+					</div>
+				</div>
+				<div class="col-md-2">
+					<div class="form-group mb-md-0">
+						<label class="form-control-label">Offset Y (mm)</label>
+						<input type="number" class="form-control" name="MPBRTRESTAPI_LABEL_OFFSET_Y" value="{{ config.MPBRTRESTAPI_LABEL_OFFSET_Y|default(0) }}" min="0">
+					</div>
+				</div>
+				<div class="col-md-2">
+					<div class="form-group mb-0">
+						<label class="form-control-label d-block">Opzioni</label>
+						<div class="custom-control custom-checkbox custom-control-inline">
+							<input type="checkbox" class="custom-control-input" id="MPBRTRESTAPI_LABEL_BORDER" name="MPBRTRESTAPI_LABEL_BORDER" value="1" {% if config.MPBRTRESTAPI_LABEL_BORDER %} checked {% endif %}>
+							<label class="custom-control-label" for="MPBRTRESTAPI_LABEL_BORDER">Bordo</label>
+						</div>
+						<div class="custom-control custom-checkbox custom-control-inline">
+							<input type="checkbox" class="custom-control-input" id="MPBRTRESTAPI_LABEL_LOGO" name="MPBRTRESTAPI_LABEL_LOGO" value="1" {% if config.MPBRTRESTAPI_LABEL_LOGO %} checked {% endif %}>
+							<label class="custom-control-label" for="MPBRTRESTAPI_LABEL_LOGO">Logo</label>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	{# ── Azioni ────────────────────────────────────────────────────────────── #}
+	<div class="card">
+		<div class="card-footer d-flex justify-content-between align-items-center">
+			<div>
+				<button type="button" class="btn btn-outline-secondary mr-2" id="btn-test-brt">
+					<i class="material-icons">wifi_tethering</i>
+					Testa BRT
+				</button>
+			</div>
+			<div>
+				<button type="submit" class="btn btn-primary">
+					<i class="material-icons">save</i>
+					Salva Impostazioni
+				</button>
+			</div>
+		</div>
+	</div>
+
+</form>
+
+{# ── Modale Errori Sintassi Regole BRT ────────────────────────────────────── #}
+<dialog id="brtRuleSyntaxErrorDialog" class="border-0 p-0 rounded shadow-lg" style="max-width: 600px; width: 90%;">
+	<form method="dialog" class="m-0" onsubmit="event.preventDefault();">
+		<div class="modal-header bg-danger text-white align-items-center py-2 px-3">
+			<h5 class="modal-title font-weight-bold d-flex align-items-center mb-0 text-white" style="font-size:1.1rem;">
+				<i class="material-icons mr-2">error_outline</i>
+				<span id="brtSyntaxErrorTitle">Errore di Sintassi nella Regola</span>
+			</h5>
+			<button type="button" class="close text-white opacity-100" onclick="document.getElementById('brtRuleSyntaxErrorDialog').close();" aria-label="Close">
+				<span aria-hidden="true">&times;</span>
+			</button>
+		</div>
+
+		<div class="modal-body p-4 bg-light">
+			<div class="alert alert-danger border-danger mb-3 p-3">
+				<div class="font-weight-bold mb-1 d-flex align-items-center text-danger">
+					<i class="material-icons mr-1">report_problem</i>
+					<span>Espressione non valida:</span>
+				</div>
+				<code id="brtSyntaxErrorExpression" class="d-block p-2 bg-white rounded border text-danger font-weight-bold text-wrap" style="font-size:13px; word-break:break-all;"></code>
+			</div>
+
+			<div class="card border-warning mb-3">
+				<div class="card-body p-3 bg-white">
+					<h6 class="font-weight-bold text-dark mb-2 d-flex align-items-center">
+						<i class="material-icons text-warning mr-1">help_outline</i>
+						<span>Dettaglio dell'Errore</span>
+					</h6>
+					<div id="brtSyntaxErrorDetail" class="mb-0 text-dark font-weight-bold" style="font-size:13px;"></div>
+				</div>
+			</div>
+
+			<div class="card border-info mb-0">
+				<div class="card-body p-3 bg-white">
+					<h6 class="font-weight-bold text-info mb-2 d-flex align-items-center">
+						<i class="material-icons text-info mr-1">lightbulb</i>
+						<span>Come correggere l'errore:</span>
+					</h6>
+					<div id="brtSyntaxErrorSuggestion" class="text-secondary small mb-0"></div>
+				</div>
+			</div>
+		</div>
+
+		<div class="modal-footer bg-white py-2 px-3 d-flex justify-content-between align-items-center">
+			<button type="button" class="btn btn-outline-success btn-sm font-weight-bold" id="brtBtnAutoFixSyntax" style="display:none;" onclick="brtPricingRules.applyAutoFix();">
+				<i class="material-icons mr-1" style="font-size:16px;vertical-align:middle;">auto_fix_high</i>
+				Applica Correzione Automatica
+			</button>
+			<button type="button" class="btn btn-secondary btn-sm ml-auto font-weight-bold" onclick="document.getElementById('brtRuleSyntaxErrorDialog').close();">
+				<i class="material-icons mr-1" style="font-size:16px;vertical-align:middle;">edit</i>
+				Chiudi e Modifica
+			</button>
+		</div>
+	</form>
+</dialog>
+
+<script>
+	window.brtPricingRulesData = {{ pricing_rules|json_encode|raw }};
+</script>
