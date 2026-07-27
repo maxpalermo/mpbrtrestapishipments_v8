@@ -26,7 +26,7 @@ class BrtConfig
     const NETWORK = 'MPBRTRESTAPI_NETWORK';
     const FREIGHT_TYPE = 'MPBRTRESTAPI_FREIGHT_TYPE';
     const SERVICE_TYPE = 'MPBRTRESTAPI_SERVICE_TYPE';
-    const NATURA_MERCI = 'MPBRTRESTAPI_NATURA_MERCI';
+    const SENDER_PARCEL_TYPE = 'MPBRTRESTAPI_SENDER_PARCEL_TYPE';
     const COD_PAYMENT_MODULES = 'MPBRTRESTAPI_COD_PAYMENT_MODULES';
 
     const ORDERSTATES_DISPLAY = 'MPBRTRESTAPI_ORDERSTATES_DISPLAY';
@@ -66,7 +66,7 @@ class BrtConfig
             self::NETWORK,
             self::FREIGHT_TYPE,
             self::SERVICE_TYPE,
-            self::NATURA_MERCI,
+            self::SENDER_PARCEL_TYPE,
             self::COD_PAYMENT_MODULES,
             self::ORDERSTATES_DISPLAY,
             self::ORDERSTATE_CHANGE,
@@ -115,7 +115,7 @@ class BrtConfig
             self::NETWORK,
             self::FREIGHT_TYPE,
             self::SERVICE_TYPE,
-            self::NATURA_MERCI,
+            self::SENDER_PARCEL_TYPE,
             self::LABEL_OUTPUT_TYPE,
             self::LABEL_OFFSET_X,
             self::LABEL_OFFSET_Y,

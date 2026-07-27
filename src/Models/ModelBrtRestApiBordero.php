@@ -124,6 +124,17 @@ class ModelBrtRestApiBordero extends \ObjectModel
         ) ?: [];
     }
 
+    public static function getByBatchId(int $batchId): array
+    {
+        self::ensureTableExists();
+
+        return \Db::getInstance()->executeS(
+            'SELECT * FROM `' . _DB_PREFIX_ . 'brt_restapi_bordero`
+             WHERE `id_bordero_batch` = ' . (int) $batchId . '
+             ORDER BY `date_add` ASC'
+        ) ?: [];
+    }
+
     public static function markAsPrinted(array $ids, int $batchId = 0): bool
     {
         if (empty($ids)) {

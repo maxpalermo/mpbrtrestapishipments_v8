@@ -42,6 +42,45 @@ Il modulo `mpbrtrestapishipments` consente di integrare i servizi di spedizione 
 
 ## Changelog
 
+### 1.5.3
+
+- **Correzione Parametri Contrassegno BRT (`codPaymentType` e `codCurrency`)**:
+  - Confrontando il payload con una richiesta valida BRT, `codPaymentType` deve essere trasmesso a stringa vuota `""` (per indicare Contanti di default), mentre `codCurrency` deve essere sempre valorizzato a `"EUR"`.
+
+### 1.5.2
+
+- Risolto l'errore BRT `-68` (`WRONG OR INCONSISTENT DATA - codPaymentType codCurrency`):
+  - In conformità con le specifiche REST API BRT ed il progetto SoapUI DEMO di BRT, per le spedizioni in contrassegno `codPaymentType` e `codCurrency` vengono trasmessi come stringa vuota `""` quando viene selezionato o estratto il tipo contanti (`CA`).
+
+### 1.5.1
+
+- **Posizionamento Fisso della Sezione Totali e RIEPILOGO in Fondo al PDF**:
+  - Aggiornata la classe `BrdPdfGenerator` in [BrdPdfGenerator.php](file:///home/massimiliano/docker/apache/ps_workwear/prestashop/modules/mpbrtrestapishipments/src/Helpers/BrdPdfGenerator.php): il box **RIEPILOGO** ed il blocco **FIRMA** vengono ora posizionati sempre in modo fisso ed ancorato nella parte inferiore del foglio A4 Landscape (`boxY = 143mm`), posizionandosi esattamente sopra la linea del piè di pagina (come mostrato nei campioni ufficiali BRT).
+  - Se le righe delle spedizioni occupano uno spazio verticale superiore a `138mm`, la sezione dei totali viene automaticamente spostata in una nuova pagina in fondo al foglio.
+
+### 1.5.0
+
+- **Stampa Borderò PDF Nativa TCPDF (A4 Landscape)**:
+  - Implementata la classe `BrdPdfGenerator` e la sottoclasse `BrtBorderoTcpdf` utilizzando esclusivamente i metodi diretti di TCPDF (`Cell`, `SetXY`, `Line`, `Rect`, `SetFont`, ecc.) senza alcuna conversione HTML.
+  - Formattazione fedele ai campioni ufficiali BRT: 2 righe per ogni spedizione (Ragione Sociale/Indirizzo/Rif. numerico/Importo/Colli/Peso/Volume/Segnacollo iniziale nella riga 1; Tipo Servizio/CAP-Città-Prov/Rif. alfanumerico/Segnacollo finale nella riga 2).
+  - Controllo dinamico del salto pagina per garantire l'integrità e la coerenza delle coppie di righe.
+  - Sezione finale con box bordato **RIEPILOGO** (Totale Spedizioni, Colli, Contrassegni, Importo Contrassegni, Peso e Volume) e blocco **FIRMA**.
+  - Assegnato al pulsante *"Stampa Borderò Giornaliero PDF"* con apertura diretta del PDF in una nuova scheda browser (`target="_blank"`).
+
+### 1.4.1
+
+- **Gestione Parametri Payload CREATE REST BRT (`senderParcelType`, `isAlertRequired`, Contrassegno COD)**:
+  - `senderParcelType` viene ora letto dalla configurazione del modulo (`MPBRTRESTAPI_SENDER_PARCEL_TYPE`, predefinito "ABBIGLIAMENTO", max 15 caratteri).
+  - `isAlertRequired` viene forzato sempre al valore `'1'`.
+  - I parametri del contrassegno (`isCODMandatory: '1'`, `cashOnDelivery`, `codPaymentType`, `codCurrency: 'EUR'`) vengono inseriti nel payload JSON inviato a BRT (e nel viewer JSON) **esclusivamente se l'importo del contrassegno è maggiore di 0**. Se l'importo è 0 o non specificato, questi 4 campi vengono rimossi dal payload.
+
+### 1.4.0
+
+- **Integrazione Pulsanti Toolbar Ordine ("Crea Segnacollo BRT" & "Tracking BRT") via `hookActionGetAdminToolbarButtons`**:
+  - Aggiunti entrambi i pulsanti **"Crea Segnacollo BRT"** (apertura modale compilazione segnacollo) e **"Tracking BRT"** (apertura diretta tab tracking modulo per l'ordine corrente) alla toolbar di navigazione ordine PrestaShop 8 usando `ActionsBarButton`.
+  - Integrata la logica di filtraggio per stato ordine (`MPBRTRESTAPI_ORDERSTATES_DISPLAY`) e il controllo permessi SuperAdmin all'interno dell'hook `hookActionGetAdminToolbarButtons`.
+  - Rimosso l'hook obsoleto `hookDisplayDashboardToolbarTopMenu`.
+
 ### 1.3.9
 
 - **Fix Caricamento Asset JS/CSS e Rendering Modale su Symfony AdminOrders**:

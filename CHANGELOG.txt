@@ -1,3 +1,18 @@
+v1.5.1
+- Posizionamento fisso ancorato in fondo alla pagina per il box RIEPILOGO e il blocco FIRMA (boxY = 143mm, subito sopra la linea di piè di pagina), con gestione automatica del salto pagina se lo spazio rimanente per le righe delle spedizioni è inferiore a 138mm.
+
+v1.5.0
+- Stampa Borderò PDF nativa TCPDF in formato A4 Landscape.
+- Layout a 2 righe per ogni spedizione con calcolo dinamico del salto pagina, box RIEPILOGO ed blocco FIRMA conforme al modello ufficiale BRT.
+- Collegamento diretto al pulsante "Stampa Borderò Giornaliero PDF" (action=printBordero) per apertura automatica del PDF in una nuova scheda browser.
+
+v1.4.1
+- senderParcelType letto da configurazione (SENDER_PARCEL_TYPE), isAlertRequired sempre a 1.
+- Inclusione condizionale dei parametri contrassegno (isCODMandatory: 1, cashOnDelivery, codPaymentType, codCurrency: EUR) solo se l'importo del contrassegno è maggiore di 0; rimozione completa dei campi dal payload in caso contrario.
+
+v1.4.0
+- Integrazione di entrambi i pulsanti ("Crea Segnacollo BRT" e "Tracking BRT") nella toolbar dell'ordine tramite l'hook hookActionGetAdminToolbarButtons con ActionsBarButton. Rimosso l'hook legacy hookDisplayDashboardToolbarTopMenu.
+
 v1.3.9
 - Fix caricamento asset JS/CSS e rendering modale su controller Symfony AdminOrders tramite actionAdminControllerSetMedia e displayAdminOrderMainBottom.
 

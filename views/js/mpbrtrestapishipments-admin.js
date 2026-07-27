@@ -350,7 +350,7 @@ class BrtShipmentModal {
                 document.getElementById("brt_consigneeItalianFiscalCode").value = d.consigneeItalianFiscalCode || "";
 
                 document.getElementById("brt_cashOnDelivery").value = d.cashOnDelivery || 0.0;
-                document.getElementById("brt_codPaymentType").value = d.codPaymentType || "CA";
+                document.getElementById("brt_codPaymentType").value = d.codPaymentType || "";
 
                 document.getElementById("brt_numericSenderReference").value = d.numericSenderReference || idOrder;
                 document.getElementById("brt_alphanumericSenderReference").value = d.alphanumericSenderReference || "";
@@ -503,17 +503,19 @@ class BrtShipmentModal {
             }
         }
 
+        createData.isAlertRequired = "1";
+
         const codAmount = parseFloat(createData.cashOnDelivery || "0");
         if (codAmount > 0) {
             createData.cashOnDelivery = codAmount.toFixed(2);
             createData.isCODMandatory = "1";
-            createData.codPaymentType = "";
-            createData.codCurrency = "";
+            createData.codPaymentType = (createData.codPaymentType === "CA") ? "" : (createData.codPaymentType || "");
+            createData.codCurrency = "EUR";
         } else {
-            createData.cashOnDelivery = 0;
-            createData.isCODMandatory = "0";
-            createData.codPaymentType = "";
-            createData.codCurrency = "";
+            delete createData.cashOnDelivery;
+            delete createData.isCODMandatory;
+            delete createData.codPaymentType;
+            delete createData.codCurrency;
         }
 
         delete createData.parcels;

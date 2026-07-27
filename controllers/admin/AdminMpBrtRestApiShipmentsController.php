@@ -181,11 +181,45 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
 
     public function postProcess()
     {
+        if (Tools::getValue('action') === 'printBordero') {
+            $this->processPrintBordero();
+        }
+
         if (Tools::isSubmit('submitSettings')) {
             $this->processSettings();
         }
 
         parent::postProcess();
+    }
+
+    public function processPrintBordero()
+    {
+        $batchId = (int) Tools::getValue('batch_id', 0);
+
+        if ($batchId > 0) {
+            $shipments = ModelBrtRestApiBordero::getByBatchId($batchId);
+        } else {
+            $shipments = ModelBrtRestApiBordero::getUnprinted(500);
+        }
+
+        if (empty($shipments) && $batchId === 0) {
+            $lastBatch = (int) \Db::getInstance()->getValue(
+                'SELECT MAX(`id_bordero_batch`) FROM `' . _DB_PREFIX_ . 'brt_restapi_bordero`'
+            );
+            if ($lastBatch > 0) {
+                $shipments = ModelBrtRestApiBordero::getByBatchId($lastBatch);
+                $batchId = $lastBatch;
+            }
+        }
+
+        if (!empty($shipments) && $batchId === 0) {
+            $batchId = time();
+            $ids = array_column($shipments, 'id_brt_restapi_bordero');
+            ModelBrtRestApiBordero::markAsPrinted($ids, $batchId);
+        }
+
+        \MpSoft\MpBrtRestApiShipments\Helpers\BrdPdfGenerator::renderPdf($shipments, $batchId);
+        exit();
     }
 
     protected function processSettings()
@@ -460,16 +494,7 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
 
     public function ajaxProcessPrintBordero()
     {
-        $unprinted = ModelBrtRestApiBordero::getUnprinted();
-        if (empty($unprinted)) {
-            die(json_encode(['success' => false, 'error' => $this->module->l('Nessuna spedizione da stampare nel Borderò.')]));
-        }
-
-        $batchId = time();
-        $ids = array_column($unprinted, 'id_brt_restapi_bordero');
-        ModelBrtRestApiBordero::markAsPrinted($ids, $batchId);
-
-        \MpSoft\MpBrtRestApiShipments\Helpers\BrdPdfGenerator::renderPdf($unprinted, $batchId);
+        $this->processPrintBordero();
     }
 
     // ─── AJAX: Routing ───────────────────────────────────────────────────────────

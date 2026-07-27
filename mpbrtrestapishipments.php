@@ -33,7 +33,7 @@ class MpBrtRestApiShipments extends Module
     {
         $this->name = 'mpbrtrestapishipments';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.3.9';
+        $this->version = '1.5.3';
         $this->author = 'Massimiliano Palermo';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '8.0', 'max' => '8.99'];
@@ -53,7 +53,6 @@ class MpBrtRestApiShipments extends Module
                 'displayAdminEndContent',
                 'displayAdminOrderMainBottom',
                 'displayAdminOrderSide',
-                'displayDashboardToolbarTopMenu',
                 'actionGetAdminToolbarButtons',
                 'actionAdminControllerSetMedia',
             ])
@@ -124,38 +123,66 @@ class MpBrtRestApiShipments extends Module
         }
 
         $controller_name = $controller->controller_name ?? '';
+        if (Tools::strtolower($controller_name) !== 'adminorders') {
+            return 0;
+        }
+
         $id_order = (int) Tools::getValue('id_order');
         if (!$id_order && isset($params['request'])) {
             $id_order = (int) ($params['request']->attributes->get('orderId') ?: $params['request']->get('orderId'));
         }
 
-        if (Tools::strtolower($controller_name) === 'adminorders' && $id_order) {
-            // Auto register media/modal hooks if missing
-            if (!$this->isRegisteredInHook('actionAdminControllerSetMedia')) {
-                $this->registerHook('actionAdminControllerSetMedia');
-            }
-            if (!$this->isRegisteredInHook('displayAdminOrderMainBottom')) {
-                $this->registerHook('displayAdminOrderMainBottom');
-            }
-
-            $button = new ActionsBarButton(
-                'btn-primary',
-                [
-                    'href' => 'javascript:brtRestApiOpenDialog(' . $id_order . ');',
-                    'icon' => 'local_shipping',
-                    'id' => 'btnBrtCreateShipmentOrderToolbar',
-                    'class' => 'btnBrtCreateShipmentOrderToolbar',
-                    'data' => [
-                        'action' => 'create_brt_shipment',
-                        'id_order' => $id_order,
-                    ],
-                ],
-                ' ' . $this->l('Crea Segnacollo BRT')
-            );
-
-            $buttons->add($button);
-
+        if (!$id_order) {
+            return 0;
         }
+
+        $order = new Order($id_order);
+        if (!Validate::isLoadedObject($order)) {
+            return 0;
+        }
+
+        $currentState = (int) $order->getCurrentState();
+        $showOnStates = json_decode((string) Configuration::get('MPBRTRESTAPI_ORDERSTATES_DISPLAY'), true) ?: [];
+
+        if (!in_array($currentState, $showOnStates) && !$this->context->employee->isSuperAdmin()) {
+            return 0;
+        }
+
+        // 1. Pulsante "Crea Segnacollo BRT"
+        $buttonCreate = new ActionsBarButton(
+            'btn-primary',
+            [
+                'href' => 'javascript:brtRestApiOpenDialog(' . (int) $order->id . ');',
+                'icon' => 'qr_code',
+                'id' => 'btnBrtCreateShipmentOrderToolbar',
+                'class' => 'btnBrtCreateShipmentOrderToolbar',
+                'data' => [
+                    'action' => 'create_brt_shipment',
+                    'id_order' => (int) $order->id,
+                ],
+            ],
+            ' ' . $this->l('Crea Segnacollo BRT')
+        );
+        $buttons->add($buttonCreate);
+
+        // 2. Pulsante "Tracking BRT"
+        $trackingUrl = Context::getContext()->link->getAdminLink(self::$adminControllerName) . '&tab=tracking&filter_id_order=' . (int) $order->id;
+        $buttonTracking = new ActionsBarButton(
+            'btn-info',
+            [
+                'href' => $trackingUrl,
+                'icon' => 'local_shipping',
+                'id' => 'btnBrtTrackingOrderToolbar',
+                'class' => 'btnBrtTrackingOrderToolbar',
+                'target' => '_blank',
+                'data' => [
+                    'action' => 'brt_tracking',
+                    'id_order' => (int) $order->id,
+                ],
+            ],
+            ' ' . $this->l('Tracking BRT')
+        );
+        $buttons->add($buttonTracking);
 
         return 0;
     }
@@ -175,32 +202,6 @@ class MpBrtRestApiShipments extends Module
     public function hookDisplayAdminOrderTop($params)
     {
         return '';
-    }
-
-    public function hookDisplayDashboardToolbarTopMenu($params)
-    {
-        if (!$this->isAdminOrderPageController()) {
-            return '';
-        }
-
-        $order = new Order((int) Tools::getValue('id_order', 0));
-        if (!Validate::isLoadedObject($order)) {
-            return '';
-        }
-
-        $currentState = (int) $order->getCurrentState();
-        $showOnStates = json_decode((string) Configuration::get('MPBRTRESTAPI_ORDERSTATES_DISPLAY'), true) ?: [];
-
-        if (!in_array($currentState, $showOnStates) && !$this->context->employee->isSuperAdmin()) {
-            return '';
-        }
-
-        return '
-            <button type="button" class="btn btn-primary mr-3" id="btnBrtRestApiShipment" onclick="brtRestApiOpenDialog(' . (int) $order->id . ')">
-                <span class="material-icons">local_shipping</span>
-                <span>' . $this->l('BRT Spedizione') . '</span>
-            </button>
-        ';
     }
 
     public function hookDisplayAdminOrderMainBottom($params)

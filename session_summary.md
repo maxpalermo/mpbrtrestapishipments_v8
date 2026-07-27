@@ -60,14 +60,14 @@ This document summarizes the changes, logic, architecture, and configurations im
 
 ## 3. Module Version Tracking
 
-* **Latest Stable Version**: `1.3.9`
+* **Latest Stable Version**: `1.5.3`
 - Verified files consistency:
-  - `mpbrtrestapishipments.php` (`$this->version = '1.3.9'`)
-  - `config.xml` (`<version><![CDATA[1.3.9]]></version>`)
-  - `config_it.xml` (`<version><![CDATA[1.3.9]]></version>`)
-  - `composer.json` (`"version": "1.3.9"`)
+  - `mpbrtrestapishipments.php` (`$this->version = '1.5.3'`)
+  - `config.xml` (`<version><![CDATA[1.5.3]]></version>`)
+  - `config_it.xml` (`<version><![CDATA[1.5.3]]></version>`)
+  - `composer.json` (`"version": "1.5.3"`)
   - `CHANGELOG.txt` (Changelog file for PS Module Manager)
-  - `README.md` (Changelog updated for version `1.3.9`)
+  - `README.md` (Changelog updated for version `1.5.3`)
 
 ---
 

@@ -66,35 +66,34 @@ class BrtShipmentRequest
                 : \Configuration::get('MPBRTRESTAPI_ACCOUNT_CUSTOMER_CODE')),
             'deliveryFreightTypeCode' => \Configuration::get('MPBRTRESTAPI_FREIGHT_TYPE') ?: 'DAP',
             'serviceType' => \Configuration::get('MPBRTRESTAPI_SERVICE_TYPE') ?: '',
-            'notes' => \Configuration::get('MPBRTRESTAPI_NATURA_MERCI') ?: '',
             'isAlertRequired' => '1',
-            'senderParcelType' => mb_substr((string) (\Configuration::get('MPBRTRESTAPI_NATURA_MERCI') ?: 'ABBIGLIAMENTO'), 0, 15),
+            'senderParcelType' => mb_substr((string) (\Configuration::get('MPBRTRESTAPI_SENDER_PARCEL_TYPE') ?: 'ABBIGLIAMENTO'), 0, 15),
         ];
 
         $merged = array_merge($defaults, $this->createData);
+
+        // Always enforce isAlertRequired = 1 and senderParcelType from config
+        $merged['isAlertRequired'] = '1';
+        $merged['senderParcelType'] = mb_substr((string) (\Configuration::get('MPBRTRESTAPI_SENDER_PARCEL_TYPE') ?: 'ABBIGLIAMENTO'), 0, 15);
 
         // Dynamic Pricing Condition Code evaluation via BrtPricingRuleParser
         if (!isset($merged['pricingConditionCode']) || $merged['pricingConditionCode'] === '') {
             $merged['pricingConditionCode'] = \MpSoft\MpBrtRestApiShipments\Helpers\BrtPricingRuleParser::evaluate($merged);
         }
 
-        // Automatic COD parameters handling
+        // Automatic COD parameters handling: only include if COD > 0
         $codAmount = isset($merged['cashOnDelivery']) ? (float) $merged['cashOnDelivery'] : 0.0;
         if ($codAmount > 0) {
             $merged['cashOnDelivery'] = number_format($codAmount, 2, '.', '');
             $merged['isCODMandatory'] = '1';
-            if ($sandbox) {
-                $merged['codPaymentType'] = '';
-                $merged['codCurrency'] = '';
-            } else {
-                $merged['codPaymentType'] = !empty($merged['codPaymentType']) ? (string) $merged['codPaymentType'] : '';
-                $merged['codCurrency'] = !empty($merged['codCurrency']) ? (string) $merged['codCurrency'] : 'EUR';
-            }
+            $paymentType = isset($merged['codPaymentType']) ? (string) $merged['codPaymentType'] : '';
+            $merged['codPaymentType'] = ($paymentType === 'CA') ? '' : $paymentType;
+            $merged['codCurrency'] = 'EUR';
         } else {
-            $merged['cashOnDelivery'] = 0;
-            $merged['isCODMandatory'] = '0';
-            $merged['codPaymentType'] = '';
-            $merged['codCurrency'] = '';
+            unset($merged['cashOnDelivery']);
+            unset($merged['isCODMandatory']);
+            unset($merged['codPaymentType']);
+            unset($merged['codCurrency']);
         }
 
         // Remove internal helper fields not recognized by BRT REST API
@@ -261,8 +260,8 @@ class BrtShipmentRequest
             'volumeM3' => 0.001,
             'cashOnDelivery' => round($codAmount, 2),
             'isCODMandatory' => $codAmount > 0 ? '1' : '0',
-            'codPaymentType' => $codAmount > 0 ? 'CA' : '',
-            'codCurrency' => $codAmount > 0 ? 'EUR' : '',
+            'codPaymentType' => '',
+            'codCurrency' => '',
         ];
     }
 }
