@@ -4,7 +4,7 @@
 
 	{# ── Sandbox banner ────────────────────────────────────────────────────── #}
 	{% if config.MPBRTRESTAPI_SANDBOX_ENABLED %}
-		<div class="alert alert-warning d-flex align-items-center mb-3">
+		<div class="alert alert-warning d-flex align-items-center mt-4 mb-4">
 			<i class="material-icons mr-2">science</i>
 			<span>
 				<strong>Modalità SANDBOX attiva</strong>
@@ -14,10 +14,10 @@
 
 	{# ── Account ───────────────────────────────────────────────────────────── #}
 	<div class="card mb-4">
-		<h3 class="card-header">
+		<div class="card-header">
 			<i class="material-icons mr-1">manage_accounts</i>
 			Credenziali Account BRT
-		</h3>
+		</div>
 		<div class="card-body">
 			<div
 				class="row">
@@ -98,10 +98,10 @@
 
 	{# ── Parametri spedizione ──────────────────────────────────────────────── #}
 	<div class="card mb-4">
-		<h3 class="card-header">
+		<div class="card-header">
 			<i class="material-icons mr-1">inventory_2</i>
 			Parametri Spedizione
-		</h3>
+		</div>
 		<div class="card-body">
 			<div class="row">
 				<div class="col-md-4">
@@ -239,41 +239,60 @@
 
 	{# ── Gestione stati ordine ─────────────────────────────────────────────── #}
 	<div class="card mb-4">
-		<h3 class="card-header">
+		<div class="card-header">
 			<i class="material-icons mr-1">fact_check</i>
 			Gestione Stati Ordine
-		</h3>
+		</div>
 		<div class="card-body">
-			<div class="form-group">
-				<label class="form-control-label">Mostra pulsante BRT negli ordini con questi stati</label>
-				<select class="form-control chosen" name="MPBRTRESTAPI_ORDERSTATES_DISPLAY[]" multiple data-placeholder="Seleziona stati ordine...">
-					{% for state in order_states %}
-						<option value="{{ state.id_order_state }}" {% if state.id_order_state in selected_order_states %} selected {% endif %}>
-							{{ state.name|e }}
-						</option>
-					{% endfor %}
-				</select>
-			</div>
-			<div class="form-group">
-				<label class="form-control-label">Cambia stato ordine dopo la creazione spedizione</label>
-				<select class="form-control chosen" name="MPBRTRESTAPI_ORDERSTATE_CHANGE" data-placeholder="Nessun cambio automatico">
-					<option value="">-- Nessun cambio --</option>
-					{% for state in order_states %}
-						<option value="{{ state.id_order_state }}" {% if config.MPBRTRESTAPI_ORDERSTATE_CHANGE == state.id_order_state %} selected {% endif %}>
-							{{ state.name|e }}
-						</option>
-					{% endfor %}
-				</select>
+			<div class="row align-items-end">
+				<div class="col-md-3">
+					<div class="form-group">
+						<label class="form-control-label">Mostra pulsante BRT negli ordini con questi stati</label>
+						<select class="form-control chosen" name="MPBRTRESTAPI_ORDERSTATES_DISPLAY[]" multiple data-placeholder="Seleziona stati ordine...">
+							{% for state in order_states %}
+								<option value="{{ state.id_order_state }}" {% if state.id_order_state in selected_order_states %} selected {% endif %}>
+									{{ state.name|e }}
+								</option>
+							{% endfor %}
+						</select>
+					</div>
+				</div>
+				<div class="col-md-3">
+					<div class="form-group">
+						<label class="form-control-label">Cambia stato ordine dopo la creazione spedizione</label>
+						<select class="form-control chosen" name="MPBRTRESTAPI_ORDERSTATE_CHANGE" data-placeholder="Nessun cambio automatico">
+							<option value="">-- Nessun cambio --</option>
+							{% for state in order_states %}
+								<option value="{{ state.id_order_state }}" {% if config.MPBRTRESTAPI_ORDERSTATE_CHANGE == state.id_order_state %} selected {% endif %}>
+									{{ state.name|e }}
+								</option>
+							{% endfor %}
+						</select>
+					</div>
+				</div>
+				<div class="col-md-3">
+					<div class="form-group">
+						<label class="form-control-label">Cambia stato ordine dopo il controllo borderò</label>
+						<select class="form-control chosen" name="MPBRTRESTAPI_ORDERSTATE_CHECK" data-placeholder="Nessun cambio automatico">
+							<option value="">-- Nessun cambio --</option>
+							{% for state in order_states %}
+								<option value="{{ state.id_order_state }}" {% if config.MPBRTRESTAPI_ORDERSTATE_CHECK == state.id_order_state %} selected {% endif %}>
+									{{ state.name|e }}
+								</option>
+							{% endfor %}
+						</select>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
 
 	{# ── Parametri etichetta ───────────────────────────────────────────────── #}
 	<div class="card mb-4">
-		<h3 class="card-header">
+		<div class="card-header">
 			<i class="material-icons mr-1">label</i>
 			Parametri Etichetta
-		</h3>
+		</div>
 		<div class="card-body">
 			<div class="row align-items-end">
 				<div class="col-md-3">

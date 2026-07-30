@@ -336,3 +336,55 @@
     font-size: 18px;
     vertical-align: middle;
 }
+
+/* ── PrestaShop Alerts & Growl Notifications Z-Index Overrides ──────────────── */
+/* Elevates showNoticeMessage, showSuccessMessage & showErrorMessage above modal backdrops */
+#growls,
+#growls-default,
+#growls.default,
+#growls.tr,
+#growls.tl,
+#growls.br,
+#growls.bl,
+.growl,
+.growl-notice,
+.growl-error,
+.growl-warning,
+.growl-success,
+.growl-item,
+.alert-growl,
+.component-growl {
+    z-index: 999999999 !important;
+}
+
+#growls {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    z-index: 999999999 !important;
+}
+
+.growl.growl-error,
+.growl.growl-warning,
+.growl.growl-success,
+.growl.growl-notice {
+    z-index: 999999999 !important;
+}
+
+/* ── Top-Layer HTML5 Dialog Growl Teleport Styling ──────────────────────── */
+dialog #growls,
+dialog#brtRestApiDialog #growls,
+dialog#mp-print-dialog #growls {
+    position: absolute !important;
+    top: 15px !important;
+    right: 15px !important;
+    z-index: 999999999 !important;
+    pointer-events: auto !important;
+}
+
+dialog .growl,
+dialog#brtRestApiDialog .growl,
+dialog#mp-print-dialog .growl {
+    z-index: 999999999 !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25) !important;
+}

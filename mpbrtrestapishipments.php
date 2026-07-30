@@ -33,7 +33,7 @@ class MpBrtRestApiShipments extends Module
     {
         $this->name = 'mpbrtrestapishipments';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.5.3';
+        $this->version = '1.5.29';
         $this->author = 'Massimiliano Palermo';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '8.0', 'max' => '8.99'];
@@ -192,6 +192,7 @@ class MpBrtRestApiShipments extends Module
         if ($this->isAdminOrderPageController()) {
             $this->context->controller->addJS($this->_path . 'views/js/mpbrtrestapishipments-admin.js');
             $this->context->controller->addCSS($this->_path . 'views/css/mpbrtrestapishipments-admin.css');
+            $this->context->controller->addCSS($this->_path . 'views/css/style-override.css');
 
             Media::addJsDef([
                 'brtAdminUrl' => Context::getContext()->link->getAdminLink(self::$adminControllerName),
@@ -229,7 +230,6 @@ class MpBrtRestApiShipments extends Module
         if ($alreadyRendered) {
             return '';
         }
-        $alreadyRendered = true;
 
         $id_order = (int) Tools::getValue('id_order');
         if (!$id_order) {
@@ -241,6 +241,12 @@ class MpBrtRestApiShipments extends Module
             } catch (\Exception $e) {
             }
         }
+
+        if (!$id_order) {
+            return '';
+        }
+
+        $alreadyRendered = true;
 
         try {
             $sfContainer = SymfonyContainer::getInstance();
@@ -258,23 +264,12 @@ class MpBrtRestApiShipments extends Module
     protected function isAdminOrderPageController()
     {
         $controller = (string) Tools::getValue('controller');
-        $id_order = (int) Tools::getValue('id_order');
 
-        if (!$id_order) {
-            try {
-                $request = SymfonyContainer::getInstance()->get('request_stack')->getCurrentRequest();
-                if ($request) {
-                    $id_order = (int) ($request->attributes->get('orderId') ?: $request->get('orderId'));
-                }
-            } catch (\Exception $e) {
-            }
-        }
-
-        $isOrderController = preg_match('/AdminOrders/i', $controller)
+        $isOrderController = preg_match('/(AdminOrders|AdminMpCustomerInvoice)/i', $controller)
             || (isset($this->context->controller) && $this->context->controller instanceof \PrestaShopBundle\Controller\Admin\Sell\Order\OrderController)
-            || (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/orders/') !== false);
+            || (isset($_SERVER['REQUEST_URI']) && (strpos($_SERVER['REQUEST_URI'], '/orders') !== false || strpos($_SERVER['REQUEST_URI'], 'AdminMpCustomerInvoice') !== false));
 
-        return $isOrderController && $id_order > 0;
+        return $isOrderController;
     }
 
     public static function getAdminControllerUrl()

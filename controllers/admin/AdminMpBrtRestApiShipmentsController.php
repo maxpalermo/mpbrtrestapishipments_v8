@@ -87,6 +87,80 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
             $pricingRules = \MpSoft\MpBrtRestApiShipments\Helpers\BrtPricingRuleParser::getDefaultRules();
         }
 
+        $tabBordero = ModelBrtRestApiBordero::getUnprinted(100);
+        $borderoTotalOrder = 0.0;
+        $borderoTotalCod = 0.0;
+
+        foreach ($tabBordero as &$b) {
+            $idOrder = (int) ($b['id_order'] ?: $b['numeric_sender_reference']);
+            $orderTotal = 0.0;
+            if ($idOrder > 0) {
+                $orderObj = new \Order($idOrder);
+                if (\Validate::isLoadedObject($orderObj)) {
+                    $orderTotal = (float) $orderObj->total_paid_tax_incl;
+                }
+            }
+            $b['order_total'] = $orderTotal;
+            $borderoTotalOrder += $orderTotal;
+            $borderoTotalCod += (float) ($b['cash_on_delivery'] ?? 0);
+        }
+        unset($b);
+
+        $orderStateChange = (int) \Configuration::get(BrtConfig::ORDERSTATE_CHANGE);
+        $checkOrders = [];
+        $checkTotalOrder = 0.0;
+        $checkTotalCod = 0.0;
+
+        if ($orderStateChange > 0) {
+            $rawOrders = \Db::getInstance()->executeS('
+                SELECT o.`id_order`, o.`reference`, o.`date_add`, o.`total_paid_tax_incl`, o.`module`, o.`payment`
+                FROM `' . _DB_PREFIX_ . 'orders` o
+                WHERE o.`current_state` = ' . (int) $orderStateChange . '
+                ORDER BY o.`id_order` ASC
+            ') ?: [];
+
+            $codModules = json_decode((string) \Configuration::get('MPBRTRESTAPI_COD_PAYMENT_MODULES'), true) ?: ['ps_cashondelivery', 'mpcodfee'];
+
+            foreach ($rawOrders as $o) {
+                $moduleName = strtolower($o['module']);
+                $codAmount = 0.0;
+                if (in_array($moduleName, $codModules) || strpos($moduleName, 'cashondelivery') !== false || strpos($moduleName, 'cod') !== false || strpos(strtolower($o['payment']), 'contrassegno') !== false) {
+                    $codAmount = (float) $o['total_paid_tax_incl'];
+                }
+
+                $tot = (float) $o['total_paid_tax_incl'];
+                $checkOrders[] = [
+                    'id_order' => (int) $o['id_order'],
+                    'reference' => $o['reference'],
+                    'date_add' => $o['date_add'],
+                    'total_paid_tax_incl' => $tot,
+                    'cash_on_delivery' => $codAmount,
+                ];
+
+                $checkTotalOrder += $tot;
+                $checkTotalCod += $codAmount;
+            }
+        }
+
+        $orderTotalsMatch = (abs($borderoTotalOrder - $checkTotalOrder) < 0.01);
+        $codTotalsMatch = (abs($borderoTotalCod - $checkTotalCod) < 0.01);
+        $countsMatch = (count($tabBordero) === count($checkOrders));
+        $checkPassed = ($orderTotalsMatch && $codTotalsMatch && $countsMatch);
+
+        $checkSummary = [
+            'order_state_id' => $orderStateChange,
+            'bordero_count' => count($tabBordero),
+            'bordero_total_order' => $borderoTotalOrder,
+            'bordero_total_cod' => $borderoTotalCod,
+            'check_count' => count($checkOrders),
+            'check_total_order' => $checkTotalOrder,
+            'check_total_cod' => $checkTotalCod,
+            'diff_count' => count($checkOrders) - count($tabBordero),
+            'diff_total_order' => $checkTotalOrder - $borderoTotalOrder,
+            'diff_total_cod' => $checkTotalCod - $borderoTotalCod,
+            'is_ok' => $checkPassed,
+        ];
+
         $params = [
             'admin_url' => $adminUrl,
             'admin_url_orders' => $this->context->link->getAdminLink('AdminOrders'),
@@ -107,7 +181,9 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
             'pricing_default_code' => $config[BrtConfig::PRICING_DEFAULT_CODE] ?: '020',
             'available_fields' => \MpSoft\MpBrtRestApiShipments\Helpers\BrtPricingRuleParser::getAvailableFields(),
             'tab_shipments' => ModelBrtRestApiShipmentResponse::getAll(50, 0),
-            'tab_bordero' => ModelBrtRestApiBordero::getUnprinted(100),
+            'tab_bordero' => $tabBordero,
+            'tab_check_orders' => $checkOrders,
+            'check_summary' => $checkSummary,
             'tab_tracking' => ModelBrtRestApiTracking::getAll(50, 0),
             'connector_url' => $config[BrtConfig::CONNECTOR_URL] ?: '',
             'connector_token' => $config[BrtConfig::CONNECTOR_TOKEN] ?: '',
@@ -290,6 +366,13 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
             die(json_encode(['success' => false, 'error' => $this->module->l('Ordine non trovato o non valido')]));
         }
 
+        $orderObj = new \Order($idOrder);
+        if (\Validate::isLoadedObject($orderObj)) {
+            $data['numericSenderReference'] = $idOrder;
+            $data['alphanumericSenderReference'] = (string) $orderObj->reference;
+            $data['reference'] = (string) $orderObj->reference;
+        }
+
         $parcels = ModelBrtRestApiWeight::getParcelsByOrderId($idOrder);
         if (empty($parcels) && !empty($data['numericSenderReference'])) {
             $parcels = ModelBrtRestApiWeight::getParcelsByReference((string) $data['numericSenderReference']);
@@ -301,6 +384,20 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
             $data['weightKG'] = $totals['weightKG'];
             $data['volumeM3'] = $totals['volumeM3'];
         }
+
+        $hasLabel = false;
+        $responseModel = ModelBrtRestApiShipmentResponse::getByOrderOrReference($idOrder);
+        if ($responseModel) {
+            $labels = $responseModel->getLabelsArray();
+            $labelList = $labels['label'] ?? [];
+            foreach ($labelList as $lbl) {
+                if (!empty($lbl['stream'])) {
+                    $hasLabel = true;
+                    break;
+                }
+            }
+        }
+        $data['has_label'] = $hasLabel;
 
         die(json_encode(['success' => true, 'data' => $data]));
     }
@@ -398,6 +495,42 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
         die(json_encode(['success' => $deleted]));
     }
 
+    // ─── AJAX: Evaluate Pricing Rule Code ────────────────────────────────────────
+    public function ajaxProcessEvaluatePricingRule()
+    {
+        $createData = Tools::getValue('create_data', []);
+        if (!is_array($createData)) {
+            $createData = json_decode($createData, true) ?: [];
+        }
+
+        $code = \MpSoft\MpBrtRestApiShipments\Helpers\BrtPricingRuleParser::evaluate($createData);
+
+        die(json_encode([
+            'success' => true,
+            'code' => $code,
+        ]));
+    }
+
+    // ─── AJAX: Preview Create Shipment JSON payload ─────────────────────────────
+    public function ajaxProcessPreviewCreateJson()
+    {
+        $idOrder = (int) Tools::getValue('id_order', 0);
+        $createData = Tools::getValue('create_data', []);
+
+        if (!is_array($createData)) {
+            $createData = json_decode($createData, true) ?: [];
+        }
+
+        try {
+            $request = new BrtShipmentRequest($idOrder, $createData);
+            $payload = $request->getPreviewPayload();
+
+            die(json_encode(['success' => true, 'payload' => $payload]));
+        } catch (\Exception $e) {
+            die(json_encode(['success' => false, 'error' => $e->getMessage()]));
+        }
+    }
+
     // ─── AJAX: Create shipment ───────────────────────────────────────────────────
 
     public function ajaxProcessCreateShipment()
@@ -410,10 +543,22 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
         }
 
         $numericRef = (int) ($createData['numericSenderReference'] ?? 0);
-        if (!$numericRef) {
-            $numericRef = $idOrder ?: (int) time();
-            $createData['numericSenderReference'] = $numericRef;
+        if (!$numericRef && $idOrder) {
+            $numericRef = $idOrder;
         }
+        if (!$numericRef) {
+            $numericRef = (int) time();
+        }
+        $createData['numericSenderReference'] = (string) $numericRef;
+
+        $alphanumericRef = trim((string) ($createData['alphanumericSenderReference'] ?? ''));
+        if ($alphanumericRef === '' && $idOrder) {
+            $order = new \Order($idOrder);
+            if (\Validate::isLoadedObject($order)) {
+                $alphanumericRef = (string) $order->reference;
+            }
+        }
+        $createData['alphanumericSenderReference'] = $alphanumericRef;
         $refNum = (string) $numericRef;
 
         // Save parcel list if provided in createData
@@ -445,6 +590,29 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
             $request = new BrtShipmentRequest($idOrder, $createData);
             $result = $request->send();
 
+            if (!empty($result['success'])) {
+                $targetOrder = $idOrder;
+                if (!$targetOrder && $numericRef) {
+                    $testOrder = new \Order($numericRef);
+                    if (\Validate::isLoadedObject($testOrder)) {
+                        $targetOrder = (int) $testOrder->id;
+                    }
+                }
+
+                if ($targetOrder > 0) {
+                    $newOrderState = (int) \Configuration::get(\MpSoft\MpBrtRestApiShipments\Helpers\BrtConfig::ORDERSTATE_CHANGE);
+                    if ($newOrderState > 0) {
+                        $order = new \Order($targetOrder);
+                        if (\Validate::isLoadedObject($order) && (int) $order->current_state !== $newOrderState) {
+                            $history = new \OrderHistory();
+                            $history->id_order = (int) $order->id;
+                            $history->changeIdOrderState($newOrderState, (int) $order->id);
+                            $history->addWithemail(true);
+                        }
+                    }
+                }
+            }
+
             die(json_encode([
                 'success' => $result['success'],
                 'data' => $result['data'],
@@ -453,6 +621,37 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
         } catch (\Exception $e) {
             die(json_encode(['success' => false, 'error' => $e->getMessage()]));
         }
+    }
+
+    // ─── AJAX: Change order state ─────────────────────────────────────────────
+
+    public function ajaxProcessChangeOrderStatus()
+    {
+        $idOrder = (int) Tools::getValue('id_order', 0);
+        $idOrderState = (int) Tools::getValue('id_order_state', 0);
+        $idEmployee = (int) Context::getContext()->employee->id;
+        $change = false;
+        $error = "";
+
+        $order = new \Order($idOrder);
+        if (!Validate::isLoadedObject($order)) {
+            $change = false;
+            $error = "L'ordine {$idOrder} non è stato trovato.";
+        }
+        try {
+            $change = $order->setCurrentState($idOrderState, $idEmployee);
+            $error = "";
+        } catch (\Throwable $th) {
+            $change = false;
+            $error = $th->getMessage();
+        }
+
+        die(json_encode([
+            'success' => $change,
+            'id_order' => $idOrder,
+            'id_order_state' => $idOrderState,
+            'message' => $error ? $error : sprintf('Stato dell\'ordine #%d aggiornato".', $idOrder),
+        ]));
     }
 
 
@@ -483,6 +682,10 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
 
         try {
             $client = BrtShipmentClient::fromConfig();
+            if (!$senderCustomerCode) {
+                $sandbox = $client->isSandbox();
+                $senderCustomerCode = (int) Configuration::get($sandbox ? 'MPBRTRESTAPI_SANDBOX_CUSTOMER_CODE' : 'MPBRTRESTAPI_ACCOUNT_CUSTOMER_CODE');
+            }
             $result = $client->deleteShipment($senderCustomerCode, $numericSenderReference, $alphanumericSenderReference);
             die(json_encode($result));
         } catch (\Exception $e) {
@@ -685,7 +888,7 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
             $responseModel = ModelBrtRestApiShipmentResponse::getByNumericSenderReference($numericRef);
         }
         if (!$responseModel && $idOrder) {
-            $responseModel = ModelBrtRestApiShipmentResponse::getByIdOrder($idOrder);
+            $responseModel = ModelBrtRestApiShipmentResponse::getByOrderOrReference($idOrder);
         }
 
         if (!$responseModel) {

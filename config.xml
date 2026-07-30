@@ -2,14 +2,14 @@
 <module>
     <name>mpbrtrestapishipments</name>
     <displayName><![CDATA[BRT Rest API Shipments & Tracking]]></displayName>
-    <version><![CDATA[1.5.3]]></version>
+    <version><![CDATA[1.5.29]]></version>
     <description><![CDATA[Gestione spedizioni e tracking BRT tramite REST API ufficiali.]]></description>
     <author><![CDATA[Massimiliano Palermo]]></author>
     <tab><![CDATA[shipping_logistics]]></tab>
     <is_configurable>1</is_configurable>
     <need_instance>0</need_instance>
     <limited_countries></limited_countries>
-    <changelog><![CDATA[v1.5.1: Posizionamento fisso in fondo alla pagina per la sezione RIEPILOGO e FIRMA nel PDF del Borderò BRT
+    <changelog><![CDATA[v1.5.29: Nuova sezione Controllo Spedizioni, colonne Totale Ordine e Contrassegno con tfoot totali in entrambe le tabelle e banner evidenziato per il controllo di quadratura tra ordini e segnacolli borderò
 v1.5.0: Generazione PDF Borderò A4 Landscape nativa TCPDF senza conversione HTML, supporto 2 righe per spedizione, box riepilogo e firma
 v1.4.1: senderParcelType da configurazione, isAlertRequired fisso a 1 e parametri contrassegno inclusi solo se > 0
 v1.4.0: Integrazione di entrambi i pulsanti "Crea Segnacollo BRT" e "Tracking BRT" nell'hookActionGetAdminToolbarButtons con ActionsBarButton e rimosso hookDisplayDashboardToolbarTopMenu

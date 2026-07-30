@@ -186,23 +186,119 @@ class BrtShipmentModal {
         this.form = document.getElementById("brtShipmentForm");
         this.alertBox = document.getElementById("brtModalAlert");
         this.adminUrl = window.brtAdminUrl || "";
+        this.bindEvents();
+    }
+
+    bindEvents() {
+        const handlePricingEvent = (e) => {
+            if (!e.target) return;
+            const id = e.target.id || "";
+            const name = e.target.name || "";
+            const pricingIds = ["brt_network", "brt_serviceType", "brt_deliveryFreightTypeCode", "brt_numberOfParcels", "brt_weightKG", "brt_volumeM3", "brt_consigneeCountryAbbreviationISOAlpha2"];
+
+            if (pricingIds.includes(id) || (name && name.startsWith("create_data["))) {
+                this.updatePricingConditionCodeDisplay();
+            }
+
+            if (id === "brt_cashOnDelivery" || id === "brt_codPaymentType") {
+                this.updateCodPaymentTypeDisplay();
+            }
+        };
+
+        document.addEventListener("change", handlePricingEvent);
+        document.addEventListener("input", handlePricingEvent);
+    }
+
+    updateCodPaymentTypeDisplay() {
+        const codAmount = parseFloat(document.getElementById("brt_cashOnDelivery")?.value || "0");
+        const codTypeSelect = document.getElementById("brt_codPaymentType");
+        const displaySpan = document.getElementById("brt_codPaymentType_display");
+
+        if (!displaySpan) return;
+
+        if (codAmount > 0) {
+            const val = codTypeSelect ? codTypeSelect.value : "";
+            const labels = {
+                "": "CA (Contanti)",
+                CA: "CA (Contanti)",
+                BM: "BM (Ass. Bancario Mitt.)",
+                CM: "CM (Ass. Circolare Mitt.)",
+                BB: "BB (Ass. Bancario Corriere)",
+                OM: "OM (Ass. Mitt. Orig.)",
+                OC: "OC (Ass. Circ. Mitt. Orig.)",
+            };
+            displaySpan.textContent = labels[val] || (val ? `${val} (Contrassegno)` : "CA (Contanti)");
+        } else {
+            displaySpan.textContent = "Nessuno (€0.00)";
+        }
+    }
+
+    async updatePricingConditionCodeDisplay(calculatedCode = null) {
+        const displaySpan = document.getElementById("brt_pricingConditionCode_display");
+        if (!displaySpan) return;
+
+        if (calculatedCode !== null && calculatedCode !== undefined) {
+            displaySpan.textContent = calculatedCode || "020";
+            return;
+        }
+
+        const formEl = document.getElementById("brtShipmentForm");
+        if (!formEl) return;
+
+        const formData = new FormData(formEl);
+        const params = {};
+        for (const [key, value] of formData.entries()) {
+            params[key] = value;
+        }
+
+        if (window.brtParcelManager && typeof window.brtParcelManager.getParcelsData === "function") {
+            const parcelsData = window.brtParcelManager.getParcelsData();
+            parcelsData.forEach((p, idx) => {
+                params[`create_data[parcels][${idx}][progressivo]`] = p.progressivo;
+                params[`create_data[parcels][${idx}][weight]`] = p.weight;
+                params[`create_data[parcels][${idx}][x]`] = p.x;
+                params[`create_data[parcels][${idx}][y]`] = p.y;
+                params[`create_data[parcels][${idx}][z]`] = p.z;
+                params[`create_data[parcels][${idx}][volume]`] = p.volume;
+                params[`create_data[parcels][${idx}][is_envelope]`] = p.is_envelope;
+            });
+        }
+
+        try {
+            const result = await this.postFetch("evaluatePricingRule", params);
+            if (result.success && result.code !== undefined) {
+                displaySpan.textContent = result.code || "020";
+            }
+        } catch (e) {
+            console.error("Error evaluating pricing condition code:", e);
+        }
     }
 
     resetForm() {
         if (this.form) {
             this.form.reset();
         }
-        document.getElementById("brt_id_order").value = 0;
-        document.getElementById("brt_search_order_id").value = "";
-        document.getElementById("brt_order_ref_badge").innerHTML = "Nuova Spedizione Manuale";
-        document.getElementById("brt_consigneeCountryAbbreviationISOAlpha2").value = "IT";
-        document.getElementById("brt_numberOfParcels").value = 1;
-        document.getElementById("brt_weightKG").value = "1.0";
-        document.getElementById("brt_volumeM3").value = "0.001";
-        document.getElementById("brt_cashOnDelivery").value = "0.00";
-        document.getElementById("brt_numericSenderReference").value = Math.floor(Date.now() / 1000);
-        document.getElementById("btnBrtPrintLabel").disabled = true;
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+        };
+
+        setVal("brt_id_order", 0);
+        setVal("brt_search_order_id", "");
+        const badgeEl = document.getElementById("brt_order_ref_badge");
+        if (badgeEl) badgeEl.innerHTML = "Nuova Spedizione Manuale";
+        setVal("brt_consigneeCountryAbbreviationISOAlpha2", "IT");
+        setVal("brt_numberOfParcels", 1);
+        setVal("brt_weightKG", "1.0");
+        setVal("brt_volumeM3", "0.001");
+        setVal("brt_cashOnDelivery", "0.00");
+        setVal("brt_numericSenderReference", "");
+        setVal("brt_alphanumericSenderReference", "");
+        const printBtn = document.getElementById("btnBrtPrintLabel");
+        if (printBtn) printBtn.disabled = true;
         window.brtParcelManager.reset(1.0);
+        this.updateCodPaymentTypeDisplay();
+        this.updatePricingConditionCodeDisplay();
         this.clearAlert();
     }
 
@@ -214,7 +310,9 @@ class BrtShipmentModal {
 
         this.clearAlert();
         if (idOrder > 0) {
+            document.getElementById("brt_id_order").value = idOrder;
             document.getElementById("brt_search_order_id").value = idOrder;
+            document.getElementById("brt_numericSenderReference").value = idOrder;
             this.loadOrderData(idOrder);
         } else {
             this.resetForm();
@@ -276,7 +374,30 @@ class BrtShipmentModal {
     }
 
     showAlert(message, type = "info") {
+        if (type === "success") {
+            if (typeof showSuccessMessage === "function") {
+                showSuccessMessage(message);
+            }
+            this.clearAlert();
+            return;
+        }
+        if (type === "notice" || type === "info") {
+            if (typeof showNoticeMessage === "function") {
+                showNoticeMessage(message);
+                this.clearAlert();
+                return;
+            }
+        }
+        if (type === "error") {
+            if (typeof showErrorMessage === "function") {
+                showErrorMessage(message);
+            }
+            this.clearAlert();
+            return;
+        }
+
         if (!this.alertBox) return;
+
         this.alertBox.className = `alert alert-${type}`;
         this.alertBox.innerHTML = message;
         this.alertBox.classList.remove("d-none");
@@ -332,31 +453,45 @@ class BrtShipmentModal {
             const result = await this.postFetch("getOrderData", { id_order: idOrder });
             if (result.success && result.data) {
                 const d = result.data;
-                document.getElementById("brt_id_order").value = d.id_order;
-                document.getElementById("brt_order_ref_badge").innerHTML = `Ord. #${d.id_order} (${d.alphanumericSenderReference})`;
+                const setVal = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = val !== null && val !== undefined ? val : "";
+                };
 
-                document.getElementById("brt_consigneeCompanyName").value = d.consigneeCompanyName || "";
-                document.getElementById("brt_consigneeAddress").value = d.consigneeAddress || "";
-                document.getElementById("brt_consigneeZIPCode").value = d.consigneeZIPCode || "";
-                document.getElementById("brt_consigneeCity").value = d.consigneeCity || "";
-                document.getElementById("brt_consigneeProvinceAbbreviation").value = d.consigneeProvinceAbbreviation || "";
-                document.getElementById("brt_consigneeCountryAbbreviationISOAlpha2").value = d.consigneeCountryAbbreviationISOAlpha2 || "IT";
-                document.getElementById("brt_consigneeTelephone").value = d.consigneeTelephone || "";
-                const mobileEl = document.getElementById("brt_consigneeMobilePhoneNumber") || document.getElementById("brt_consigneeMobilePhone");
-                if (mobileEl) {
-                    mobileEl.value = d.consigneeMobilePhoneNumber || d.consigneeMobilePhone || "";
+                setVal("brt_id_order", d.id_order);
+                const badgeEl = document.getElementById("brt_order_ref_badge");
+                if (badgeEl) {
+                    badgeEl.innerHTML = `Ord. #${d.id_order} (${d.alphanumericSenderReference || d.reference || ""})`;
                 }
-                document.getElementById("brt_consigneeEMail").value = d.consigneeEMail || "";
-                document.getElementById("brt_consigneeItalianFiscalCode").value = d.consigneeItalianFiscalCode || "";
 
-                document.getElementById("brt_cashOnDelivery").value = d.cashOnDelivery || 0.0;
-                document.getElementById("brt_codPaymentType").value = d.codPaymentType || "";
+                setVal("brt_consigneeCompanyName", d.consigneeCompanyName);
+                setVal("brt_consigneeAddress", d.consigneeAddress);
+                setVal("brt_consigneeZIPCode", d.consigneeZIPCode);
+                setVal("brt_consigneeCity", d.consigneeCity);
+                setVal("brt_consigneeProvinceAbbreviation", d.consigneeProvinceAbbreviation);
+                setVal("brt_consigneeCountryAbbreviationISOAlpha2", d.consigneeCountryAbbreviationISOAlpha2 || "IT");
+                setVal("brt_consigneeTelephone", d.consigneeTelephone);
+                setVal("brt_consigneeMobilePhoneNumber", d.consigneeMobilePhoneNumber || d.consigneeMobilePhone);
+                setVal("brt_consigneeMobilePhone", d.consigneeMobilePhoneNumber || d.consigneeMobilePhone);
+                setVal("brt_consigneeEMail", d.consigneeEMail);
+                setVal("brt_consigneeItalianFiscalCode", d.consigneeItalianFiscalCode);
 
-                document.getElementById("brt_numericSenderReference").value = d.numericSenderReference || idOrder;
-                document.getElementById("brt_alphanumericSenderReference").value = d.alphanumericSenderReference || "";
+                setVal("brt_cashOnDelivery", d.cashOnDelivery || 0.0);
+                setVal("brt_codPaymentType", d.codPaymentType);
+
+                setVal("brt_numericSenderReference", d.numericSenderReference || d.id_order || idOrder);
+                setVal("brt_alphanumericSenderReference", d.alphanumericSenderReference || d.reference);
+                setVal("brt_network", d.network !== undefined ? d.network : "");
 
                 window.brtParcelManager.setParcels(d.parcels || [], d.weightKG || 1.0);
 
+                const printBtn = document.getElementById("btnBrtPrintLabel");
+                if (printBtn) {
+                    printBtn.disabled = !d.has_label;
+                }
+
+                this.updateCodPaymentTypeDisplay();
+                this.updatePricingConditionCodeDisplay(d.pricingConditionCode);
                 this.showAlert("Dati ordine e pacchi caricati con successo!", "success");
             } else {
                 this.showAlert(result.error || "Impossibile trovare l'ordine specificato", "danger");
@@ -374,6 +509,18 @@ class BrtShipmentModal {
         const params = { id_order: idOrder };
         for (const [key, value] of formData.entries()) {
             params[key] = value;
+        }
+
+        if (idOrder > 0) {
+            if (!params["create_data[numericSenderReference]"] || params["create_data[numericSenderReference]"] === "0") {
+                params["create_data[numericSenderReference]"] = idOrder;
+            }
+            if (!params["create_data[alphanumericSenderReference]"]) {
+                const alphaInput = document.getElementById("brt_alphanumericSenderReference");
+                if (alphaInput && alphaInput.value) {
+                    params["create_data[alphanumericSenderReference]"] = alphaInput.value;
+                }
+            }
         }
 
         const parcelsData = window.brtParcelManager.getParcelsData();
@@ -398,6 +545,7 @@ class BrtShipmentModal {
                 showBrtAlertModal("Esito Creazione Spedizione BRT", `<div class="alert alert-success border-success mb-0"><i class="material-icons mr-1" style="vertical-align:middle;">check_circle</i> <strong>Spedizione creata con successo su BRT! Segnacollo generato.</strong></div>`);
                 const printBtn = document.getElementById("btnBrtPrintLabel");
                 if (printBtn) printBtn.disabled = false;
+                this.printLabel(null, idOrder);
             } else {
                 const errorText = result.error || "Impossibile creare la spedizione BRT";
                 this.showAlert("Errore BRT: " + errorText, "danger");
@@ -446,16 +594,16 @@ class BrtShipmentModal {
         }
     }
 
-    async printLabel(explicitNumericRef = null) {
-        const numericRef = explicitNumericRef || parseInt(document.getElementById("brt_numericSenderReference").value || "0", 10);
-        const idOrder = parseInt(document.getElementById("brt_id_order").value || "0", 10);
+    async printLabel(explicitNumericRef = null, explicitIdOrder = null) {
+        const numericRef = explicitNumericRef || parseInt(document.getElementById("brt_numericSenderReference")?.value || "0", 10);
+        const idOrder = explicitIdOrder || parseInt(document.getElementById("brt_id_order")?.value || "0", 10);
 
         if (!numericRef && !idOrder) {
             showBrtAlertModal("Stampa Segnacollo", `<div class="alert alert-warning border-warning mb-0"><i class="material-icons mr-1" style="vertical-align:middle;">warning</i> <strong>Nessun riferimento o ID ordine specificato per la stampa.</strong></div>`);
             return;
         }
 
-        this.showAlert("Recupero ed unione segnacolli PDF in corso...", "info");
+        this.showAlert("Recupero ed unione segnacolli PDF in corso...", "notice");
 
         try {
             const result = await this.postFetch("getLabel", {
@@ -489,91 +637,150 @@ class BrtShipmentModal {
         }
     }
 
-    viewRequestJson() {
+    async viewRequestJson(type = "create") {
+        if (type === "delete") {
+            const numericRef = parseInt(document.getElementById("brt_numericSenderReference").value || "0", 10);
+            const alphanumericRef = document.getElementById("brt_alphanumericSenderReference").value || "";
+
+            const payload = {
+                account: {
+                    userID: "(Configurato nel modulo)",
+                    password: "****************",
+                },
+                deleteData: {
+                    senderCustomerCode: "(Codice Cliente Sandbox/Account)",
+                    numericSenderReference: numericRef,
+                    alphanumericSenderReference: alphanumericRef,
+                },
+            };
+
+            showBrtJsonDialog("Corpo della Richiesta DELETE / Annullamento (JSON)", JSON.stringify(payload, null, 2));
+            return;
+        }
+
+        const idOrder = parseInt(document.getElementById("brt_id_order").value || "0", 10);
         const formEl = document.getElementById("brtShipmentForm");
         if (!formEl) return;
 
         const formData = new FormData(formEl);
-        const createData = {};
-
+        const params = { id_order: idOrder };
         for (const [key, value] of formData.entries()) {
-            if (key.startsWith("create_data[")) {
-                const fieldName = key.replace(/^create_data\[/, "").replace(/\]$/, "");
-                createData[fieldName] = value;
+            params[key] = value;
+        }
+
+        const parcelsData = window.brtParcelManager.getParcelsData();
+        parcelsData.forEach((p, idx) => {
+            params[`create_data[parcels][${idx}][progressivo]`] = p.progressivo;
+            params[`create_data[parcels][${idx}][weight]`] = p.weight;
+            params[`create_data[parcels][${idx}][x]`] = p.x;
+            params[`create_data[parcels][${idx}][y]`] = p.y;
+            params[`create_data[parcels][${idx}][z]`] = p.z;
+            params[`create_data[parcels][${idx}][volume]`] = p.volume;
+            params[`create_data[parcels][${idx}][is_envelope]`] = p.is_envelope;
+        });
+
+        try {
+            const result = await this.postFetch("previewCreateJson", params);
+            if (result.success && result.payload) {
+                showBrtJsonDialog("Corpo della Richiesta CREATE (JSON)", JSON.stringify(result.payload, null, 2));
+            } else {
+                alert(result.error || "Impossibile generare la preview JSON.");
             }
+        } catch (e) {
+            alert("Errore durante la generazione della preview JSON: " + e.message);
         }
-
-        createData.isAlertRequired = "1";
-
-        const codAmount = parseFloat(createData.cashOnDelivery || "0");
-        if (codAmount > 0) {
-            createData.cashOnDelivery = codAmount.toFixed(2);
-            createData.isCODMandatory = "1";
-            createData.codPaymentType = (createData.codPaymentType === "CA") ? "" : (createData.codPaymentType || "");
-            createData.codCurrency = "EUR";
-        } else {
-            delete createData.cashOnDelivery;
-            delete createData.isCODMandatory;
-            delete createData.codPaymentType;
-            delete createData.codCurrency;
-        }
-
-        delete createData.parcels;
-
-        const payload = {
-            account: {
-                userID: "(Configurato nel modulo)",
-                password: "****************",
-            },
-            createData: createData,
-            isLabelRequired: "1",
-            labelParameters: {
-                outputType: "PDF",
-                offsetX: "0",
-                offsetY: "0",
-            },
-        };
-
-        const formattedJson = JSON.stringify(payload, null, 2);
-        showBrtJsonDialog("Corpo della Richiesta CREATE (JSON)", formattedJson);
     }
 }
 
-// Global instance
-window.brtModalInstance = new BrtShipmentModal();
+function getBrtModalInstance() {
+    if (!window.brtModalInstance) {
+        try {
+            window.brtModalInstance = new BrtShipmentModal();
+        } catch (e) {
+            console.error("Error initializing BrtShipmentModal:", e);
+        }
+    }
+    return window.brtModalInstance;
+}
 
 function brtRestApiOpenDialog(idOrder = 0) {
-    window.brtModalInstance.open(idOrder);
+    const inst = getBrtModalInstance();
+    if (inst) inst.open(idOrder);
 }
 function brtRestApiNewManualShipment() {
-    window.brtModalInstance.open(0);
+    const inst = getBrtModalInstance();
+    if (inst) inst.open(0);
 }
 function brtRestApiNewFromOrder() {
-    window.brtModalInstance.openFromOrderPrompt();
+    const inst = getBrtModalInstance();
+    if (inst) inst.openFromOrderPrompt();
 }
 function brtRestApiCloseSelectOrderDialog() {
-    window.brtModalInstance.closeFromOrderPrompt();
+    const inst = getBrtModalInstance();
+    if (inst) inst.closeFromOrderPrompt();
 }
 function brtRestApiSubmitSelectOrder() {
-    window.brtModalInstance.submitFromOrderPrompt();
+    const inst = getBrtModalInstance();
+    if (inst) inst.submitFromOrderPrompt();
 }
 function brtRestApiCloseDialog() {
-    window.brtModalInstance.close();
+    const inst = getBrtModalInstance();
+    if (inst) inst.close();
 }
 function brtRestApiLoadOrderData() {
-    window.brtModalInstance.loadOrderData();
+    const inst = getBrtModalInstance();
+    if (inst) inst.loadOrderData();
 }
 function brtRestApiCreateShipment() {
-    window.brtModalInstance.createShipment();
+    const inst = getBrtModalInstance();
+    if (inst) inst.createShipment();
 }
-function brtRestApiViewRequestJson() {
-    window.brtModalInstance.viewRequestJson();
+function brtRestApiViewRequestJson(type = "create") {
+    const inst = getBrtModalInstance();
+    if (inst) inst.viewRequestJson(type);
+}
+function brtRestApiViewDeleteRequestJson() {
+    const inst = getBrtModalInstance();
+    if (inst) inst.viewRequestJson("delete");
 }
 function brtRestApiDeleteShipment() {
-    window.brtModalInstance.deleteShipment();
+    const inst = getBrtModalInstance();
+    if (inst) inst.deleteShipment();
 }
-function brtRestApiPrintLabel() {
-    window.brtModalInstance.printLabel();
+function brtRestApiPrintLabel(explicitNumericRef = null, explicitIdOrder = null) {
+    const inst = getBrtModalInstance();
+    if (inst) inst.printLabel(explicitNumericRef, explicitIdOrder);
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => getBrtModalInstance());
+} else {
+    getBrtModalInstance();
+}
+
+// Auto-teleport #growls inside active HTML5 Top Layer <dialog open>
+if (typeof MutationObserver !== "undefined") {
+    const teleportGrowlsToDialog = () => {
+        const activeDialog = document.querySelector("dialog[open]");
+        const growls = document.getElementById("growls") || document.querySelector(".growl")?.parentElement;
+        if (activeDialog && growls && growls.parentElement !== activeDialog) {
+            activeDialog.appendChild(growls);
+        }
+    };
+
+    const growlObserver = new MutationObserver(teleportGrowlsToDialog);
+    const startObserver = () => {
+        if (document.body) {
+            growlObserver.observe(document.body, { childList: true, subtree: true });
+            teleportGrowlsToDialog();
+        }
+    };
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", startObserver);
+    } else {
+        startObserver();
+    }
 }
 
 class BrtPricingRulesManager {

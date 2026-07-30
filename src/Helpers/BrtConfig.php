@@ -31,6 +31,7 @@ class BrtConfig
 
     const ORDERSTATES_DISPLAY = 'MPBRTRESTAPI_ORDERSTATES_DISPLAY';
     const ORDERSTATE_CHANGE = 'MPBRTRESTAPI_ORDERSTATE_CHANGE';
+    const ORDERSTATE_CHECK = 'MPBRTRESTAPI_ORDERSTATE_CHECK';
     const ORDERSTATES_START_DATE = 'MPBRTRESTAPI_ORDERSTATES_START_DATE';
     const ORDERSTATES_END_DATE = 'MPBRTRESTAPI_ORDERSTATES_END_DATE';
 
@@ -70,6 +71,7 @@ class BrtConfig
             self::COD_PAYMENT_MODULES,
             self::ORDERSTATES_DISPLAY,
             self::ORDERSTATE_CHANGE,
+            self::ORDERSTATE_CHECK,
             self::ORDERSTATES_START_DATE,
             self::ORDERSTATES_END_DATE,
             self::LABEL_OUTPUT_TYPE,
@@ -166,6 +168,10 @@ class BrtConfig
 
         if (isset($data[self::ORDERSTATE_CHANGE])) {
             $ok = $ok && \Configuration::updateValue(self::ORDERSTATE_CHANGE, (int) $data[self::ORDERSTATE_CHANGE]);
+        }
+
+        if (isset($data[self::ORDERSTATE_CHECK])) {
+            $ok = $ok && \Configuration::updateValue(self::ORDERSTATE_CHECK, (int) $data[self::ORDERSTATE_CHECK]);
         }
 
         return $ok;

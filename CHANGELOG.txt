@@ -1,3 +1,78 @@
+v1.5.29
+- Aggiunta la sezione "Controllo Spedizioni", colonne "Totale Ordine" e "Contrassegno" con footer tfoot dei totali sia per la tabella Borderò che per la tabella Controllo Spedizioni, e banner per la verifica delle discrepanze sui segnacolli.
+
+v1.5.28
+- Aggiornato ModelBrtRestApiBordero::getUnprinted() per filtrare gli ordini in base allo stato MPBRTRESTAPI_ORDERSTATE_CHANGE e verificare la presenza attiva delle etichette/segnacolli.
+
+v1.5.27
+- Implementata la verifica ed aggiornamento automatico dello stato ordine in ajaxProcessCreateShipment() secondo la configurazione MPBRTRESTAPI_ORDERSTATE_CHANGE tramite la classe OrderHistory di PrestaShop.
+
+v1.5.26
+- Aggiunta la costante ORDERSTATE_CHECK ('MPBRTRESTAPI_ORDERSTATE_CHECK') nella classe BrtConfig ed integrata la logica di lettura in getAll() e di salvataggio in saveFromPost().
+
+v1.5.25
+- Implementato l'auto-teleport tramite MutationObserver per spostare l'elemento notifiche growl (#growls) all'interno del dialog attivo (Top Layer HTML5), facendo sì che showNoticeMessage, showSuccessMessage e showErrorMessage vengano mostrati sempre sopra il backdrop.
+
+v1.5.24
+- Aggiunti nel file style-override.css gli override CSS con z-index elevato (999999999) per il contenitore delle notifiche growl (#growls, .growl, .alert-growl), garantendo la visualizzazione di showNoticeMessage sopra il backdrop dei modali.
+
+v1.5.23
+- Aggiornato printLabel() per mostrare il messaggio "Recupero ed unione segnacolli PDF in corso..." tramite la funzione nativa showNoticeMessage() di PrestaShop.
+
+v1.5.22
+- Aggiornata la gestione delle notifiche di successo in showAlert(): utilizza la funzione showSuccessMessage() nativa di PrestaShop (growl toast) e rimuove il banner verde inline all'interno del modale.
+
+v1.5.21
+- Risolto il TypeError 'Cannot read properties of undefined (reading open)': implementata la funzione getBrtModalInstance() con inizializzazione pigra (lazy instantiation) ed utilizzato document.addEventListener al posto di document.body per evitare qualsiasi eccezione prima del caricamento del DOM.
+
+v1.5.20
+- Convertiti gli event listener in delegati globali via bubbling su document.body per intercettare qualsiasi variazione su network, serviceType e tutti i parametri create_data anche se il modale o i suoi elementi vengono creati/inseriti nel DOM in un secondo momento.
+
+v1.5.19
+- Aggiunta la delega degli eventi (change/input) a livello di form per brt_network e tutti i campi create_data, assicurando che la modifica del Network aggiorni istantaneamente il Codice Tariffa BRT.
+
+v1.5.18
+- Creata la chiamata AJAX evaluatePricingRule ed aggiornata la funzione updatePricingConditionCodeDisplay in JS per valutare il Codice Tariffa BRT tramite BrtPricingRuleParser::evaluate in tempo reale al variare di serviceType o qualsiasi altro parametro.
+
+v1.5.17
+- Aggiornati i valori della select Network nel template Twig (Standard '', DPD 'D', EuroExpress 'E', FED 'S') secondo le specifiche REST API di BRT.
+- Incluso il campo 'network' in BrtShipmentRequest::extractDataFromOrder ed abilitata la compilazione automatica in JavaScript (loadOrderData).
+
+v1.5.16
+- Corretto il bug 'ReferenceError: d is not defined' in loadOrderData (ripristinata la dichiarazione const d = result.data), ripristinando la compilazione di tutti i campi dell'ordine compreso alphanumericSenderReference.
+
+v1.5.15
+- Risolto blocco di esecuzione JS in loadOrderData: l'accesso agli elementi del DOM è stato protetto con una funzione helper sicura setVal. Un campo rimosso dal template Twig (brt_consigneeItalianFiscalCode) causava un eccezione 'TypeError' interrompendo il popolamento dei campi successivi (incluso alphanumericSenderReference).
+
+v1.5.14
+- Forzata l'assegnazione del codice di riferimento dell'ordine ($order->reference) ai campi alphanumericSenderReference e reference in ajaxProcessGetOrderData del controller backend, assicurando che non venga mai sovrascritto da valori vuoti di vecchie richieste.
+
+v1.5.13
+- Popolamento immediato dei campi HTML #brt_numericSenderReference ed #brt_alphanumericSenderReference sia al momento dell'apertura del modale con id_order che al completamento del caricamento AJAX dei dati ordine.
+
+v1.5.12
+- Eliminata la duplicazione del codice di costruzione JSON in JS: la funzione viewRequestJson ora effettua una chiamata AJAX a previewCreateJson.
+- La preview JSON viene generata in PHP direttamente da BrtShipmentRequest::getPreviewPayload, garantendo che sia ESATTAMENTE identica al payload inviato al server BRT.
+
+v1.5.11
+- Garanzia che numericSenderReference ed alphanumericSenderReference siano sempre valorizzati con id_order e reference dell'ordine sia in JavaScript (createShipment), che nel controller AJAX, che nel builder della richiesta (BrtShipmentRequest::buildCreateData).
+
+v1.5.10
+- Sostituzione del badge Codice Pagamento con il badge dinamico Codice Tariffa BRT (pricingConditionCode, es. 020, 100, 390, 395).
+- Calcolo automatico in tempo reale del pricingConditionCode tramite BrtPricingRuleParser sia nel caricamento dati ordine che al variare dei parametri di spedizione.
+
+v1.5.9
+- Garanzia di compilazione automatica costante dei riferimenti ordine (numericSenderReference = id_order ed alphanumericSenderReference = reference ordine) sia in estrazione che in invio payload.
+- Badge informativo dinamico del Codice Pagamento (#brt_codPaymentType_display) aggiornato in tempo reale sia al popolamento dell'ordine che al variare di importo contrassegno e tipo pagamento selezionato.
+
+v1.5.8
+- Apertura ed apertura automatica dell'etichetta PDF del segnacollo subito dopo la creazione avvenuta con successo tramite #btnBrtCreateShipment.
+- Abilitazione dinamica del pulsante #btnBrtPrintLabel nel modale di creazione segnacollo se l'ordine aperto ha già un'etichetta archiviata nel database (via data.has_label in ajaxProcessGetOrderData).
+
+v1.5.7
+- Stampa diretta segnacollo via ID ordine (`getByOrderOrReference`) per chiamate AJAX esterne da altri moduli (`mpcustomerinvoice`).
+- Supporto parametri espliciti `(explicitNumericRef, explicitIdOrder)` in `printLabel` e `brtRestApiPrintLabel` in `mpbrtrestapishipments-admin.js`.
+
 v1.5.1
 - Posizionamento fisso ancorato in fondo alla pagina per il box RIEPILOGO e il blocco FIRMA (boxY = 143mm, subito sopra la linea di piè di pagina), con gestione automatica del salto pagina se lo spazio rimanente per le righe delle spedizioni è inferiore a 138mm.
 

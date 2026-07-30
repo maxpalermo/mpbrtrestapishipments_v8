@@ -4,7 +4,23 @@ This document summarizes the changes, logic, architecture, and configurations im
 
 ---
 
-## 1. Context & Conversation Reference
+### 1.5.6
+
+- Refactored JSON payload viewer into a single unified `viewRequestJson(type)` method in [mpbrtrestapishipments-admin.js](file:///home/massimiliano/docker/apache/ps_workwear/prestashop/modules/mpbrtrestapishipments/views/js/mpbrtrestapishipments-admin.js), using the exact same `showBrtJsonDialog` viewer modal for both CREATE and DELETE requests without code duplication.
+
+### 1.5.5
+
+- Added **"Vedi JSON Annullamento"** (`btnBrtViewDeleteRequest`) button next to the Cancel Shipment button in the shipment modal ([modal-shipment.html.twig](file:///home/massimiliano/docker/apache/ps_workwear/prestashop/modules/mpbrtrestapishipments/views/twig/admin/modal-shipment.html.twig)).
+- Enhanced Sandbox customer code resolution (`senderCustomerCode`) in [AdminMpBrtRestApiShipmentsController.php](file:///home/massimiliano/docker/apache/ps_workwear/prestashop/modules/mpbrtrestapishipments/controllers/admin/AdminMpBrtRestApiShipmentsController.php) and [mpbrtrestapishipments-admin.js](file:///home/massimiliano/docker/apache/ps_workwear/prestashop/modules/mpbrtrestapishipments/views/js/mpbrtrestapishipments-admin.js).
+
+### 1.5.4
+
+- Fixed BRT Error `[-68] WRONG OR INCONSISTENT DATA - isCODMandatory [must not be empty]`:
+  - Ensured that `isCODMandatory` is **always present** in the JSON payload sent to BRT REST API.
+  - When the order is NOT cash on delivery (`cashOnDelivery <= 0`), `isCODMandatory` is now explicitly sent as `'0'` (instead of being deleted/unset).
+  - Updated in [BrtShipmentRequest.php](file:///home/massimiliano/docker/apache/ps_workwear/prestashop/modules/mpbrtrestapishipments/src/Api/Shipment/BrtShipmentRequest.php) and [mpbrtrestapishipments-admin.js](file:///home/massimiliano/docker/apache/ps_workwear/prestashop/modules/mpbrtrestapishipments/views/js/mpbrtrestapishipments-admin.js).
+
+### 1.5.3 Context & Conversation Reference
 
 - **Current Conversation ID**: `9dc48f7e-dc1c-424f-9e5a-edbed96bddb6`
 - **App Data Directory**: `/home/massimiliano/.gemini/antigravity-ide`

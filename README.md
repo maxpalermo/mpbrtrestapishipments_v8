@@ -42,6 +42,158 @@ Il modulo `mpbrtrestapishipments` consente di integrare i servizi di spedizione 
 
 ## Changelog
 
+### 1.5.29
+
+- **Sezione "Controllo Spedizioni" e Quadratura Totali (`AdminMpBrtRestApiShipmentsController.php` & `tab_shipments.html.twig`)**:
+  - Aggiunta la nuova tabella **Controllo Spedizioni** sotto il Borderò per elencare gli ordini nello stato `MPBRTRESTAPI_ORDERSTATE_CHANGE` (colonne: ID Ordine, Riferimento, Data, Totale da Pagare, Contrassegno).
+  - Inserite le colonne **Totale Ordine** e **Contrassegno** con riga `tfoot` dei totali sia nella tabella *Borderò Spedizioni* che nella tabella *Controllo Spedizioni*.
+  - Aggiunto il banner di avviso dinamico che segnala visibilmente la perfetta quadratura (verde) o l'eventuale discrepanza (rosso) sui totali degli ordini e dei contrassegni.
+
+### 1.5.28
+
+- **Filtro Ordini & Segnacolli da Stampare per il Borderò (`ModelBrtRestApiBordero::getUnprinted`)**:
+  - Aggiornata la query SQL per includere nell'elenco dei segnacolli da stampare (sia in tabella che nel PDF) esclusivamente gli ordini impostati allo stato `MPBRTRESTAPI_ORDERSTATE_CHANGE` e che possiedono al minimo un segnacollo / etichetta generato.
+
+### 1.5.27
+
+- **Cambio Automatico Stato Ordine alla Creazione della Spedizione (`MPBRTRESTAPI_ORDERSTATE_CHANGE`)**:
+  - Aggiornato `ajaxProcessCreateShipment()` in `AdminMpBrtRestApiShipmentsController.php`.
+  - Quando la creazione della spedizione BRT va a buon fine e `MPBRTRESTAPI_ORDERSTATE_CHANGE` è valorizzato, lo stato dell'ordine viene automaticamente aggiornato tramite `OrderHistory`.
+
+### 1.5.26
+
+- **Integrazione Campo di Configurazione `MPBRTRESTAPI_ORDERSTATE_CHECK`**:
+  - Definita la costante `ORDERSTATE_CHECK` in `BrtConfig.php`.
+  - Inclusa la lettura automatica nel metodo `BrtConfig::getAll()` ed il salvataggio in `BrtConfig::saveFromPost()`.
+
+### 1.5.25
+
+- **Auto-Teleport Growl nel Top Layer dei Modali HTML5**:
+  - Implementato un `MutationObserver` JS che sposta automaticamente `#growls` all'interno del `<dialog open>` attivo.
+  - Risolto definitivamente il vincolo delle specifiche browser HTML5 per cui gli elementi fuori dal Top Layer non potevano sormontare i backdrop `showModal()`.
+
+### 1.5.24
+
+- **Override CSS Z-Index Notifiche Growl (`style-override.css`)**:
+  - Inserite le regole CSS con `z-index: 999999999 !important;` su `#growls` e sulle classi `.growl` per sovrapporre le notifiche PrestaShop (`showNoticeMessage`, `showSuccessMessage`, `showErrorMessage`) al backdrop del modale.
+
+### 1.5.23
+
+- **Notifiche Informativa Stampa Segnacollo (`showNoticeMessage`)**:
+  - Aggiornato `printLabel()` affinché il messaggio *"Recupero ed unione segnacolli PDF in corso..."* venga mostrato tramite `showNoticeMessage()` nativo di PrestaShop.
+
+### 1.5.22
+
+- **Notifiche di Successo Native PrestaShop (`showSuccessMessage`)**:
+  - Aggiornata la gestione di `showAlert` con `type = "success"`: invoca `showSuccessMessage` (toast in alto a destra) e pulisce il contenitore di avviso interno al dialog.
+
+### 1.5.21
+
+- **Fix `TypeError: Cannot read properties of undefined (reading 'open')`**:
+  - Sostituita l'istanza globale immediata con la funzione `getBrtModalInstance()` che esegue la lazy instantiation sicura.
+  - Sostituito `document.body` con `document` in `bindEvents()`, impedendo qualsiasi eccezione in caso di esecuzione prima dell'apertura del body.
+
+### 1.5.20
+
+- **Integrazione Event Listener via Event Bubbling su `document.body`**:
+  - Spostati gli event listener di `change` ed `input` su `document.body` per sfruttare il bubbling degli eventi DOM.
+  - Garantito il perfetto tracciamento di `brt_network`, `brt_serviceType` e di tutti i parametri di spedizione anche se il modale o i suoi campi vengono istanziati/iniettati nel DOM in tempi differenti.
+
+### 1.5.19
+
+- **Integrazione Event Listener per `brt_network`**:
+  - Aggiunta la delega eventi `change` ed `input` sul form `brtShipmentForm` per il selettore `#brt_network`.
+  - Garantito che qualsiasi variazione del Network ricalcoli ed aggiorni istantaneamente il badge `#brt_pricingConditionCode_display`.
+
+### 1.5.18
+
+- **Valutazione Dinamica in Tempo Reale del Codice Tariffa (`pricingConditionCode`)**:
+  - Collegata la modifica di `serviceType`, `network`, colli, peso, volume, porto e nazione alla nuova chiamata AJAX `evaluatePricingRule`.
+  - Garantito che il valore mostrato nel badge `#brt_pricingConditionCode_display` sia sempre valutato dinamicamente in base alle regole configurate in `BrtPricingRuleParser`.
+
+### 1.5.17
+
+- **Aggiornamento Selettore e Gestione `network` BRT**:
+  - Inseriti i valori corretti delle opzioni BRT API nella `<select id="brt_network">`: `""` (Standard), `"D"` (DPD), `"E"` (EuroExpress), `"S"` (FED).
+  - Inserito il popolamento di `network` in `BrtShipmentRequest::extractDataFromOrder()` e nel caricamento dati in `mpbrtrestapishipments-admin.js`.
+
+### 1.5.16
+
+- **Fix `ReferenceError: d is not defined` in `loadOrderData()`**:
+  - Ripristinata la riga `const d = result.data;` che mancava all'interno del blocco `if (result.success && result.data)`.
+  - Risolto il blocco che impediva il popolamento di `alphanumericSenderReference` e degli altri campi dell'ordine.
+
+### 1.5.15
+
+- **Risolto Blocco JS in `loadOrderData()`**:
+  - Implementata la funzione helper `setVal(id, val)` che verifica la presenza dell'elemento nel DOM prima di assegnare `.value`.
+  - Risolto un `TypeError` che si verificava cercando di accedere al campo rimosso `brt_consigneeItalianFiscalCode`, blocco che impediva l'esecuzione delle righe successive e lasciava vuoto `brt_alphanumericSenderReference`.
+
+### 1.5.14
+
+- **Fix Assegnazione Riferimento Alfanumerico (`alphanumericSenderReference`)**:
+  - Forzata l'assegnazione diretta e senza condizioni di `$orderObj->reference` in `ajaxProcessGetOrderData()`, impedendo che stringhe vuote provenienti da record precedenti sovrascrivessero la reference reale dell'ordine.
+
+### 1.5.13
+
+- **Popolamento Immediato dei Campi Riferimento Form (`#brt_numericSenderReference` e `#brt_alphanumericSenderReference`)**:
+  - Impostata la compilazione immediata del valore di `#brt_numericSenderReference` all'invocazione di `open(idOrder)` prima dell'avvio della chiamata AJAX.
+  - Assicurato il popolamento di entrambi i campi con `numericSenderReference` (`id_order`) e `alphanumericSenderReference` (`reference`) nel form visibile a schermo.
+
+### 1.5.12
+
+- **Unificazione Preview JSON con Backend PHP**:
+  - Rimosso il simulatore di JSON ridondante in JavaScript.
+  - Collegata la funzione `viewRequestJson()` all'endpoint AJAX `previewCreateJson` che sfrutta direttamente `BrtShipmentRequest::getPreviewPayload()`.
+  - Garantito che il JSON mostrato a schermo sia **ESATTAMENTE identico** al payload reale inviato ai server BRT (con la sola password mascherata).
+
+### 1.5.11
+
+- **Fix Riferimenti Ordine (`numericSenderReference` ed `alphanumericSenderReference`)**:
+  - Implementata la verifica ed il riempimento forzato dei riferimenti in tutti e tre i livelli: client JS (`createShipment`), controller AJAX (`AdminMpBrtRestApiShipmentsController.php`) e payload builder (`BrtShipmentRequest::buildCreateData()`).
+  - Assicurato che nel payload JSON inviato alle API BRT `numericSenderReference` contenga l'ID dell'ordine ed `alphanumericSenderReference` il codice riferimento (es. `ISA044000`).
+
+### 1.5.10
+
+- **Badge Dinamico Codice Tariffa BRT (`pricingConditionCode`)**:
+  - Sostituito il badge informativo con il valore calcolato del **Codice Tariffa BRT** (`pricingConditionCode`, es. `020`, `100`, `390`, `395`).
+  - Calcolo e visualizzazione dinamica via `BrtPricingRuleParser` ed aggiornamento in tempo reale nel modale tramite `#brt_pricingConditionCode_display`.
+
+### 1.5.9
+
+- **Compilazione Automatica Riferimenti Ordine & Badge Dinamico Codice Pagamento**:
+  - Garantita la compilazione costante e non vuota di `numericSenderReference` (`id_order`) ed `alphanumericSenderReference` (`reference` dell'ordine) in `BrtShipmentRequest.php`, `AdminMpBrtRestApiShipmentsController.php` ed `mpbrtrestapishipments-admin.js`.
+  - Integrato ed aggiornato in tempo reale il badge del **Codice Pagamento** (`#brt_codPaymentType_display`) nel modale di spedizione in base all'importo del contrassegno ed al tipo di pagamento selezionato.
+
+### 1.5.8
+
+- **Apertura Automatica Etichetta PDF & Abilitazione Dinamica Pulsante Stampa**:
+  - Inserita l'invocazione automatica di `this.printLabel(null, idOrder)` subito dopo l'esito positivo della creazione del segnacollo tramite `#btnBrtCreateShipment`.
+  - Abilitato dinamicamente il pulsante **Stampa Segnacollo** (`#btnBrtPrintLabel`) all'apertura del modale di creazione segnacollo per qualsiasi ordine che possieda già un'etichetta PDF salvata in archivio (`has_label` restituito da `ajaxProcessGetOrderData`).
+
+### 1.5.7
+
+- **Stampa Diretta Segnacollo via ID Ordine & Invocazione Esterna**:
+  - Aggiunto il metodo `getByOrderOrReference(int $idOrder)` in `ModelBrtRestApiShipmentResponse.php` per consentire la ricerca dinamica sia per `id_order` che per `numeric_sender_reference`.
+  - Aggiornata la firma del metodo `printLabel(explicitNumericRef, explicitIdOrder)` e del wrapper globale `brtRestApiPrintLabel(explicitNumericRef, explicitIdOrder)` in `mpbrtrestapishipments-admin.js` per consentire la chiamata diretta da moduli esterni (come `mpcustomerinvoice`).
+
+### 1.5.6
+
+- **Refactoring Unificato Viewer JSON (`mpbrtrestapishipments-admin.js`)**:
+  - Consolidata la logica di visualizzazione dei payload JSON in un unico metodo `viewRequestJson(type)` (`'create'` o `'delete'`), riutilizzando la stessa modale `showBrtJsonDialog` senza duplicazioni o codice ridondante.
+
+### 1.5.5
+
+- **Integrazione Pulsante "Vedi JSON Annullamento" & Garanzia Codice Cliente Sandbox (`modal-shipment.html.twig`)**:
+  - Inserito il pulsante **"Vedi JSON Annullamento"** (`btnBrtViewDeleteRequest`) accanto al pulsante di annullamento spedizione per visualizzare in un modale dedicato il payload `PUT /delete` inviato a BRT.
+  - Rafforzato l'invio e il recupero del `senderCustomerCode` (Codice Cliente Sandbox o Account) in `AdminMpBrtRestApiShipmentsController.php` ed `mpbrtrestapishipments-admin.js`.
+
+### 1.5.4
+
+- **Fix Obbligatorietà Parametro BRT `isCODMandatory` (Errore BRT -68)**:
+  - Garantita la presenza costante del campo `isCODMandatory` nel payload JSON di creazione spedizione BRT (in `BrtShipmentRequest.php` e in `mpbrtrestapishipments-admin.js`).
+  - Quando l'ordine non è in contrassegno (`cashOnDelivery <= 0`), `isCODMandatory` viene ora esplicitamente inviato valorizzato a `'0'`, prevenendo l'errore BRT `[-68] WRONG OR INCONSISTENT DATA - isCODMandatory [must not be empty]`.
+
 ### 1.5.3
 
 - **Correzione Parametri Contrassegno BRT (`codPaymentType` e `codCurrency`)**:

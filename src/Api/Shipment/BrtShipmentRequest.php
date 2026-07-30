@@ -72,6 +72,22 @@ class BrtShipmentRequest
 
         $merged = array_merge($defaults, $this->createData);
 
+        // Always enforce numericSenderReference and alphanumericSenderReference as non-empty values
+        $numRef = (string) ($merged['numericSenderReference'] ?? '');
+        if (trim($numRef) === '' || trim($numRef) === '0') {
+            $numRef = (string) $this->idOrder;
+        }
+        $merged['numericSenderReference'] = $numRef;
+
+        $alphaRef = (string) ($merged['alphanumericSenderReference'] ?? '');
+        if (trim($alphaRef) === '' && $this->idOrder) {
+            $order = new \Order($this->idOrder);
+            if (\Validate::isLoadedObject($order)) {
+                $alphaRef = (string) $order->reference;
+            }
+        }
+        $merged['alphanumericSenderReference'] = $alphaRef;
+
         // Always enforce isAlertRequired = 1 and senderParcelType from config
         $merged['isAlertRequired'] = '1';
         $merged['senderParcelType'] = mb_substr((string) (\Configuration::get('MPBRTRESTAPI_SENDER_PARCEL_TYPE') ?: 'ABBIGLIAMENTO'), 0, 15);
@@ -81,7 +97,7 @@ class BrtShipmentRequest
             $merged['pricingConditionCode'] = \MpSoft\MpBrtRestApiShipments\Helpers\BrtPricingRuleParser::evaluate($merged);
         }
 
-        // Automatic COD parameters handling: only include if COD > 0
+        // Automatic COD parameters handling: isCODMandatory MUST always be present ('1' if COD > 0, else '0')
         $codAmount = isset($merged['cashOnDelivery']) ? (float) $merged['cashOnDelivery'] : 0.0;
         if ($codAmount > 0) {
             $merged['cashOnDelivery'] = number_format($codAmount, 2, '.', '');
@@ -90,8 +106,8 @@ class BrtShipmentRequest
             $merged['codPaymentType'] = ($paymentType === 'CA') ? '' : $paymentType;
             $merged['codCurrency'] = 'EUR';
         } else {
+            $merged['isCODMandatory'] = '0';
             unset($merged['cashOnDelivery']);
-            unset($merged['isCODMandatory']);
             unset($merged['codPaymentType']);
             unset($merged['codCurrency']);
         }
@@ -100,6 +116,25 @@ class BrtShipmentRequest
         unset($merged['parcels']);
 
         return $merged;
+    }
+
+    /**
+     * Get preview payload structure built with exact backend logic (password masked).
+     *
+     * @return array
+     */
+    public function getPreviewPayload(): array
+    {
+        $createData = $this->buildCreateData();
+        $account = $this->client->getAccount();
+        $account['password'] = '****************';
+
+        return [
+            'account' => $account,
+            'createData' => $createData,
+            'isLabelRequired' => $this->isLabelRequired ? '1' : '0',
+            'labelParameters' => $this->labelParameters,
+        ];
     }
 
     /**
@@ -239,7 +274,7 @@ class BrtShipmentRequest
             $codAmount = (float) $order->total_paid_tax_incl;
         }
 
-        return [
+        $data = [
             'id_order' => $idOrder,
             'numericSenderReference' => $idOrder,
             'alphanumericSenderReference' => (string) $order->reference,
@@ -262,6 +297,11 @@ class BrtShipmentRequest
             'isCODMandatory' => $codAmount > 0 ? '1' : '0',
             'codPaymentType' => '',
             'codCurrency' => '',
+            'network' => \Configuration::get('MPBRTRESTAPI_NETWORK') ?: '',
         ];
+
+        $data['pricingConditionCode'] = \MpSoft\MpBrtRestApiShipments\Helpers\BrtPricingRuleParser::evaluate($data);
+
+        return $data;
     }
 }

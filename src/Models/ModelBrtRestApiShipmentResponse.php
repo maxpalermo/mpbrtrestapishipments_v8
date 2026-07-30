@@ -117,6 +117,28 @@ class ModelBrtRestApiShipmentResponse extends \ObjectModel
     }
 
     /**
+     * @param int $idOrder
+     * @return self|false
+     */
+    public static function getByOrderOrReference(int $idOrder)
+    {
+        self::ensureTableExists();
+        $id = (int) \Db::getInstance()->getValue(
+            'SELECT `id_brt_restapi_shipment_response` FROM `' . _DB_PREFIX_ . 'brt_restapi_shipment_response`
+             WHERE `id_order` = ' . (int) $idOrder . ' OR `numeric_sender_reference` = ' . (int) $idOrder . '
+             ORDER BY `date_add` DESC'
+        );
+
+        if (!$id) {
+            return false;
+        }
+
+        $model = new self((int) $id);
+
+        return \Validate::isLoadedObject($model) ? $model : false;
+    }
+
+    /**
      * @param int $numericSenderReference
      * @return self|false
      */

@@ -24,6 +24,7 @@
 						<th>Range Pacchi</th>
 						<th class="text-center">Colli</th>
 						<th class="text-right">Peso</th>
+						<th class="text-right">Totale Ordine</th>
 						<th class="text-right">Contrassegno</th>
 						<th>Data Generazione</th>
 					</tr>
@@ -47,6 +48,14 @@
 								<td class="text-right">{{ b.weight_kg }}
 									kg</td>
 								<td class="text-right">
+									{% if b.order_total > 0 %}
+										<strong>€
+											{{ b.order_total|number_format(2, ',', '.') }}</strong>
+									{% else %}
+										<span class="text-muted">-</span>
+									{% endif %}
+								</td>
+								<td class="text-right">
 									{% if b.cash_on_delivery > 0 %}
 										<span class="badge badge-warning">€
 											{{ b.cash_on_delivery|number_format(2, ',', '.') }}</span>
@@ -61,13 +70,172 @@
 						{% endfor %}
 					{% else %}
 						<tr>
-							<td colspan="9" class="text-center py-4 text-muted">
+							<td colspan="10" class="text-center py-4 text-muted">
 								<i class="material-icons d-block mb-1" style="font-size:32px;">check_circle_outline</i>
 								Nessuna spedizione in attesa di Borderò. Tutte le spedizioni correnti risultano stampate.
 							</td>
 						</tr>
 					{% endif %}
 				</tbody>
+				{% if tab_bordero %}
+					<tfoot class="thead-light">
+						<tr class="font-weight-bold" style="background-color: #f8f9fa;">
+							<td colspan="7" class="text-right text-uppercase">Totali Borderò ({{ check_summary.bordero_count }}
+								spedizioni):</td>
+							<td class="text-right text-primary" style="font-size: 1.05rem;">
+								€
+								{{ check_summary.bordero_total_order|number_format(2, ',', '.') }}
+							</td>
+							<td class="text-right text-warning" style="font-size: 1.05rem;">
+								€
+								{{ check_summary.bordero_total_cod|number_format(2, ',', '.') }}
+							</td>
+							<td></td>
+						</tr>
+					</tfoot>
+				{% endif %}
+			</table>
+		</div>
+	</div>
+</div>
+
+{# Banner Avviso Controllo Quadratura Totali #}
+{% if check_summary.is_ok %}
+	<div class="alert alert-success d-flex align-items-center mb-4 p-3 style-override-alert">
+		<i class="material-icons mr-3" style="font-size: 32px; color: #155724;">verified</i>
+		<div>
+			<h5 class="alert-heading mb-1 font-weight-bold" style="color: #155724;">
+				<i class="material-icons align-middle mr-1" style="font-size:20px;">check_circle</i>
+				CONTROLLO SPEDIZIONI OK — NESSUNA DISCREPANZA
+			</h5>
+			<p class="mb-0 small">
+				Tutti i segnacolli del borderò coincidono con gli ordini nello stato di spedizione.<br>
+				<strong>Ordini verificati:</strong>
+				{{ check_summary.check_count }}
+				|
+				<strong>Totale Ordini:</strong>
+				€
+				{{ check_summary.check_total_order|number_format(2, ',', '.') }}
+				|
+				<strong>Totale Contrassegni:</strong>
+				€
+				{{ check_summary.check_total_cod|number_format(2, ',', '.') }}
+			</p>
+		</div>
+	</div>
+{% else %}
+	<div class="alert alert-danger d-flex align-items-center mb-4 p-3 style-override-alert">
+		<div>
+			<h5 class="alert-heading mb-1 font-weight-bold" style="color: #721c24;">
+				ATTENZIONE! RILEVATA DISCREPANZA TRA ORDINI E SEGNACOLLI BORDERÒ
+			</h5>
+			<p class="mb-1 small">
+				I totali degli ordini nello stato di spedizione NON coincidono con i segnacolli generati nel Borderò. È possibile che uno o più segnacolli non siano stati generati o siano stati annullati.
+			</p>
+			<div class="small border-top border-danger pt-2 mt-2">
+				<strong>Ordini in Stato Spedizione:</strong>
+				{{ check_summary.check_count }}
+				(Totale Ordini: €
+				{{ check_summary.check_total_order|number_format(2, ',', '.') }}
+				— Contrassegni: €
+				{{ check_summary.check_total_cod|number_format(2, ',', '.') }})<br>
+				<strong>Segnacolli in Borderò:</strong>
+				{{ check_summary.bordero_count }}
+				(Totale Ordini: €
+				{{ check_summary.bordero_total_order|number_format(2, ',', '.') }}
+				— Contrassegni: €
+				{{ check_summary.bordero_total_cod|number_format(2, ',', '.') }})<br>
+				<span class="font-weight-bold text-danger">
+					Differenza:
+					{{ check_summary.diff_count }}
+					ordini | Diff. Totale Ordini: €
+					{{ check_summary.diff_total_order|number_format(2, ',', '.') }}
+					| Diff. Contrassegni: €
+					{{ check_summary.diff_total_cod|number_format(2, ',', '.') }}
+				</span>
+			</div>
+		</div>
+	</div>
+{% endif %}
+
+{# Sezione Controllo Spedizioni #}
+<div class="card mb-4">
+	<div class="card-header d-flex justify-content-between align-items-center">
+		<h3 class="mb-0">
+			<i class="material-icons mr-1">fact_check</i>
+			Controllo Spedizioni (Ordini nello Stato di Spedizione)
+		</h3>
+		<span class="badge badge-secondary">
+			{{ tab_check_orders|length }}
+			ordini
+		</span>
+	</div>
+	<div class="card-body p-0">
+		<div class="table-responsive">
+			<table class="table table-striped table-hover mb-0">
+				<thead class="thead-light">
+					<tr>
+						<th>ID Ordine</th>
+						<th>Riferimento</th>
+						<th>Data</th>
+						<th class="text-right">Totale da Pagare</th>
+						<th class="text-right">Contrassegno</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% if tab_check_orders %}
+						{% for o in tab_check_orders %}
+							<tr>
+								<td>
+									<a href="{{ admin_url_orders }}&id_order={{ o.id_order }}&vieworder" target="_blank" class="font-weight-bold">
+										#{{ o.id_order }}
+									</a>
+								</td>
+								<td>
+									<strong>{{ o.reference }}</strong>
+								</td>
+								<td>
+									<small class="text-muted">{{ o.date_add }}</small>
+								</td>
+								<td class="text-right">
+									<strong>€
+										{{ o.total_paid_tax_incl|number_format(2, ',', '.') }}</strong>
+								</td>
+								<td class="text-right">
+									{% if o.cash_on_delivery > 0 %}
+										<span class="badge badge-warning">€
+											{{ o.cash_on_delivery|number_format(2, ',', '.') }}</span>
+									{% else %}
+										<span class="text-muted">-</span>
+									{% endif %}
+								</td>
+							</tr>
+						{% endfor %}
+					{% else %}
+						<tr>
+							<td colspan="5" class="text-center py-4 text-muted">
+								<i class="material-icons d-block mb-1" style="font-size:32px;">info</i>
+								Nessun ordine trovato nello stato impostato per la spedizione.
+							</td>
+						</tr>
+					{% endif %}
+				</tbody>
+				{% if tab_check_orders %}
+					<tfoot class="thead-light">
+						<tr class="font-weight-bold" style="background-color: #f8f9fa;">
+							<td colspan="3" class="text-right text-uppercase">Totali Controllo Spedizioni ({{ check_summary.check_count }}
+								ordini):</td>
+							<td class="text-right text-primary" style="font-size: 1.05rem;">
+								€
+								{{ check_summary.check_total_order|number_format(2, ',', '.') }}
+							</td>
+							<td class="text-right text-warning" style="font-size: 1.05rem;">
+								€
+								{{ check_summary.check_total_cod|number_format(2, ',', '.') }}
+							</td>
+						</tr>
+					</tfoot>
+				{% endif %}
 			</table>
 		</div>
 	</div>

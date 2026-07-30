@@ -116,12 +116,30 @@ class ModelBrtRestApiBordero extends \ObjectModel
     {
         self::ensureTableExists();
 
-        return \Db::getInstance()->executeS(
-            'SELECT * FROM `' . _DB_PREFIX_ . 'brt_restapi_bordero`
-             WHERE `is_printed` = 0
-             ORDER BY `date_add` ASC
-             LIMIT ' . (int) $limit
-        ) ?: [];
+        $orderStateChange = (int) \Configuration::get(\MpSoft\MpBrtRestApiShipments\Helpers\BrtConfig::ORDERSTATE_CHANGE);
+
+        $sql = 'SELECT b.* 
+                FROM `' . _DB_PREFIX_ . 'brt_restapi_bordero` b
+                LEFT JOIN `' . _DB_PREFIX_ . 'orders` o 
+                    ON (o.`id_order` = b.`id_order` OR (b.`id_order` = 0 AND o.`id_order` = b.`numeric_sender_reference`))
+                LEFT JOIN `' . _DB_PREFIX_ . 'brt_restapi_shipment_response` sr
+                    ON (sr.`id_order` = b.`id_order` OR (b.`id_order` = 0 AND sr.`numeric_sender_reference` = b.`numeric_sender_reference`))
+                WHERE b.`is_printed` = 0';
+
+        if ($orderStateChange > 0) {
+            $sql .= ' AND (o.`current_state` = ' . (int) $orderStateChange . ' OR b.`id_order` = 0)';
+        }
+
+        $sql .= ' AND (
+            (b.`parcel_number_from` IS NOT NULL AND b.`parcel_number_from` != \'\')
+            OR (sr.`labels_json` IS NOT NULL AND sr.`labels_json` != \'\' AND sr.`labels_json` != \'[]\' AND sr.`labels_json` != \'{}\')
+            OR (sr.`response_json` IS NOT NULL AND sr.`response_json` LIKE \'%\"labels\"%\')
+            OR (sr.`parcel_number_from` IS NOT NULL AND sr.`parcel_number_from` != \'\')
+        )';
+
+        $sql .= ' GROUP BY b.`id_brt_restapi_bordero` ORDER BY b.`date_add` ASC LIMIT ' . (int) $limit;
+
+        return \Db::getInstance()->executeS($sql) ?: [];
     }
 
     public static function getByBatchId(int $batchId): array
