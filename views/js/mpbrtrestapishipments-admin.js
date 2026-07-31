@@ -542,7 +542,6 @@ class BrtShipmentModal {
             const result = await this.postFetch("createShipment", params);
             if (result.success) {
                 this.showAlert("Spedizione creata con successo! Segnacollo generato.", "success");
-                showBrtAlertModal("Esito Creazione Spedizione BRT", `<div class="alert alert-success border-success mb-0"><i class="material-icons mr-1" style="vertical-align:middle;">check_circle</i> <strong>Spedizione creata con successo su BRT! Segnacollo generato.</strong></div>`);
                 const printBtn = document.getElementById("btnBrtPrintLabel");
                 if (printBtn) printBtn.disabled = false;
                 this.printLabel(null, idOrder);
@@ -1294,7 +1293,299 @@ const initSettingsPage = () => {
             }
         });
     });
+
+    if (document.getElementById("brt_bordero_register_card")) {
+        window.brtBorderoPagination = new BrtBorderoPaginationManager();
+    }
 };
+
+class BrtBorderoPaginationManager {
+    constructor() {
+        this.currentPage = 1;
+        this.limit = 50;
+        this.total = 0;
+        this.totalPages = 1;
+        this.datePrinted = '';
+        this.adminUrl = window.brtAdminUrl || '';
+        this.adminUrlOrders = '';
+        this.init();
+    }
+
+    init() {
+        const select = document.getElementById('brtBorderoPageSize');
+        if (select) {
+            this.limit = parseInt(select.value || '50', 10);
+        }
+        const dateInput = document.getElementById('brtBorderoDatePrintedSearch');
+        if (dateInput) {
+            this.datePrinted = dateInput.value || '';
+        }
+        const paginationList = document.getElementById('brtBorderoPaginationList');
+        if (paginationList) {
+            this.currentPage = parseInt(paginationList.getAttribute('data-current-page') || '1', 10);
+            this.totalPages = parseInt(paginationList.getAttribute('data-total-pages') || '1', 10);
+        }
+        this.renderPaginationControls();
+    }
+
+    searchByDatePrinted(dateStr) {
+        this.datePrinted = (dateStr || '').trim();
+        this.loadPage(1);
+    }
+
+    async loadPage(page = 1) {
+        if (page < 1) page = 1;
+        if (this.totalPages > 0 && page > this.totalPages) page = this.totalPages;
+        this.currentPage = page;
+
+        const overlay = document.getElementById('brtBorderoLoadingOverlay');
+        if (overlay) {
+            overlay.classList.remove('d-none');
+            overlay.classList.add('d-flex');
+        }
+
+        try {
+            let url = `${this.adminUrl}&action=getBorderoShipments&page=${page}&limit=${this.limit}&ajax=1`;
+            if (this.datePrinted) {
+                url += `&date_printed=${encodeURIComponent(this.datePrinted)}`;
+            }
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                this.total = result.total || 0;
+                this.totalPages = result.total_pages || 1;
+                this.currentPage = result.page || 1;
+                this.limit = result.limit || 50;
+                if (result.admin_url_orders) {
+                    this.adminUrlOrders = result.admin_url_orders;
+                }
+
+                this.renderRows(result.data || []);
+                this.updatePaginationInfo();
+                this.renderPaginationControls();
+            } else {
+                console.error('Error fetching bordero shipments:', result);
+            }
+        } catch (e) {
+            console.error('AJAX fetch error for bordero shipments:', e);
+        } finally {
+            if (overlay) {
+                overlay.classList.remove('d-flex');
+                overlay.classList.add('d-none');
+            }
+        }
+    }
+
+    changeLimit(newLimit) {
+        this.limit = parseInt(newLimit, 10) || 50;
+        this.loadPage(1);
+    }
+
+    renderRows(records) {
+        const tbody = document.getElementById('brtBorderoTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        if (!records || records.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="12" class="text-center py-4 text-muted">
+                        <i class="material-icons d-block mb-1" style="font-size:32px">local_shipping</i>
+                        Nessuna spedizione trovata nel registro del borderò.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        const adminUrlOrders = this.adminUrlOrders || (window.location.origin + window.location.pathname.replace('AdminMpBrtRestApiShipments', 'AdminOrders'));
+
+        records.forEach((ship) => {
+            const tr = document.createElement('tr');
+
+            const orderUrl = (ship.id_order && parseInt(ship.id_order, 10) > 0)
+                ? (adminUrlOrders.includes('999999999')
+                    ? adminUrlOrders.replace('999999999', ship.id_order)
+                    : `${adminUrlOrders}&id_order=${ship.id_order}&vieworder`)
+                : '#';
+
+            const orderCell = ship.id_order && parseInt(ship.id_order, 10) > 0
+                ? `<a href="${orderUrl}" target="_blank" class="font-weight-bold">#${ship.id_order}</a>`
+                : `<span class="text-muted">—</span>`;
+
+            const rangeCell = ship.parcel_number_from
+                ? `<span class="badge badge-info">${this.escapeHtml(ship.parcel_number_from)} → ${this.escapeHtml(ship.parcel_number_to)}</span>`
+                : `<span class="badge badge-secondary">${ship.number_of_parcels || 1} colli</span>`;
+
+            const codAmount = parseFloat(ship.cash_on_delivery || '0');
+            const codCell = codAmount > 0
+                ? `<span class="badge badge-warning">€ ${codAmount.toFixed(2).replace('.', ',')}</span>`
+                : `<span class="text-muted">-</span>`;
+
+            let printedCell = '';
+            if (ship.is_printed && parseInt(ship.is_printed, 10) === 1) {
+                printedCell = `<div><span class="badge badge-success" title="Stampato il ${this.escapeHtml(ship.date_printed || '')}"><i class="material-icons" style="font-size:12px">check_circle</i> Stampato</span></div>${ship.date_printed ? `<div style="font-family:monospace;font-size:11px;color:#6c757d;margin-top:2px;">${this.escapeHtml(ship.date_printed)}</div>` : ''}`;
+            } else {
+                printedCell = `<div><span class="badge badge-warning"><i class="material-icons" style="font-size:12px">schedule</i> Da Stampare</span></div>`;
+                if (ship.execution_message && ship.execution_code !== undefined && parseInt(ship.execution_code, 10) !== 0) {
+                    const shortMsg = ship.execution_message.length > 35 ? ship.execution_message.substring(0, 35) + '...' : ship.execution_message;
+                    printedCell += `<div style="font-size:11px;color:#dc3545;margin-top:2px;" title="${this.escapeHtml(ship.execution_message)}"><i class="material-icons" style="font-size:11px;vertical-align:middle;">error_outline</i> ${this.escapeHtml(shortMsg)}</div>`;
+                } else if (!ship.parcel_number_from) {
+                    printedCell += `<div style="font-size:11px;color:#fd7e14;margin-top:2px;" title="Segnacollo non generato"><i class="material-icons" style="font-size:11px;vertical-align:middle;">warning</i> Segnacollo mancante</div>`;
+                }
+            }
+
+            const viewBtn = (ship.id_order && parseInt(ship.id_order, 10) > 0)
+                ? `<a href="${orderUrl}" target="_blank" class="btn btn-outline-primary btn-sm mr-1" title="Vedi ordine in una nuova scheda"><i class="material-icons">visibility</i></a>`
+                : '';
+
+            tr.innerHTML = `
+                <td>${ship.id_brt_restapi_bordero}</td>
+                <td>${orderCell}</td>
+                <td><code>${this.escapeHtml(ship.numeric_sender_reference || '')}</code></td>
+                <td>${this.escapeHtml(ship.alphanumeric_sender_reference || '')}</td>
+                <td>${this.escapeHtml(ship.consignee_company_name || '')}</td>
+                <td>${this.escapeHtml(ship.consignee_city || '')}</td>
+                <td>${rangeCell}</td>
+                <td class="text-right">${parseFloat(ship.weight_kg || '0').toFixed(2)} kg</td>
+                <td class="text-right">${codCell}</td>
+                <td class="text-center">${printedCell}</td>
+                <td><small class="text-muted">${this.escapeHtml(ship.date_add || '')}</small></td>
+                <td class="text-right">
+                    ${viewBtn}
+                    <button class="btn btn-outline-info btn-sm btn-get-label" data-numeric="${this.escapeHtml(ship.numeric_sender_reference || '')}" title="Stampa etichetta segnacollo">
+                        <i class="material-icons">print</i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm btn-delete-shipment" data-numeric="${this.escapeHtml(ship.numeric_sender_reference || '')}" title="Annulla spedizione BRT">
+                        <i class="material-icons">delete</i>
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+        this.bindRowActions();
+    }
+
+    bindRowActions() {
+        document.querySelectorAll('#brtBorderoTableBody .btn-get-label').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const numericRef = btn.getAttribute('data-numeric');
+                if (numericRef && window.brtModalInstance) {
+                    window.brtModalInstance.printLabel(numericRef);
+                }
+            });
+        });
+
+        document.querySelectorAll('#brtBorderoTableBody .btn-delete-shipment').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const numericRef = btn.getAttribute('data-numeric');
+                if (numericRef && window.brtModalInstance) {
+                    const numInput = document.getElementById('brt_numericSenderReference');
+                    if (numInput) numInput.value = numericRef;
+                    window.brtModalInstance.deleteShipment();
+                }
+            });
+        });
+    }
+
+    updatePaginationInfo() {
+        const headerBadge = document.getElementById('brtBorderoHeaderBadge');
+        if (headerBadge) {
+            headerBadge.textContent = `${this.total} record`;
+        }
+
+        const infoSpan = document.getElementById('brtBorderoPaginationInfo');
+        if (infoSpan) {
+            const startCount = this.total > 0 ? (this.currentPage - 1) * this.limit + 1 : 0;
+            let endCount = this.currentPage * this.limit;
+            if (endCount > this.total) endCount = this.total;
+            infoSpan.innerHTML = `Mostrati <strong>${startCount}</strong> - <strong>${endCount}</strong> di <strong>${this.total}</strong> record`;
+        }
+    }
+
+    renderPaginationControls() {
+        const container = document.getElementById('brtBorderoPaginationList');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        if (this.totalPages <= 1) return;
+
+        // Previous button
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${this.currentPage <= 1 ? 'disabled' : ''}`;
+        prevLi.innerHTML = `<a class="page-link" href="#" onclick="event.preventDefault(); brtBorderoPagination.loadPage(${this.currentPage - 1})"><i class="material-icons" style="font-size:14px;vertical-align:middle;">chevron_left</i></a>`;
+        container.appendChild(prevLi);
+
+        // Page numbers
+        const maxPagesToShow = 5;
+        let startPage = Math.max(1, this.currentPage - 2);
+        let endPage = Math.min(this.totalPages, startPage + maxPagesToShow - 1);
+        if (endPage - startPage < maxPagesToShow - 1) {
+            startPage = Math.max(1, endPage - maxPagesToShow + 1);
+        }
+
+        if (startPage > 1) {
+            const firstLi = document.createElement('li');
+            firstLi.className = 'page-item';
+            firstLi.innerHTML = `<a class="page-link" href="#" onclick="event.preventDefault(); brtBorderoPagination.loadPage(1)">1</a>`;
+            container.appendChild(firstLi);
+
+            if (startPage > 2) {
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = `<span class="page-link">…</span>`;
+                container.appendChild(ellipsisLi);
+            }
+        }
+
+        for (let p = startPage; p <= endPage; p++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${p === this.currentPage ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" onclick="event.preventDefault(); brtBorderoPagination.loadPage(${p})">${p}</a>`;
+            container.appendChild(li);
+        }
+
+        if (endPage < this.totalPages) {
+            if (endPage < this.totalPages - 1) {
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = `<span class="page-link">…</span>`;
+                container.appendChild(ellipsisLi);
+            }
+
+            const lastLi = document.createElement('li');
+            lastLi.className = 'page-item';
+            lastLi.innerHTML = `<a class="page-link" href="#" onclick="event.preventDefault(); brtBorderoPagination.loadPage(${this.totalPages})">${this.totalPages}</a>`;
+            container.appendChild(lastLi);
+        }
+
+        // Next button
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${this.currentPage >= this.totalPages ? 'disabled' : ''}`;
+        nextLi.innerHTML = `<a class="page-link" href="#" onclick="event.preventDefault(); brtBorderoPagination.loadPage(${this.currentPage + 1})"><i class="material-icons" style="font-size:14px;vertical-align:middle;">chevron_right</i></a>`;
+        container.appendChild(nextLi);
+    }
+
+    escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+}
 
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initSettingsPage);

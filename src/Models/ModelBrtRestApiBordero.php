@@ -197,4 +197,41 @@ class ModelBrtRestApiBordero extends \ObjectModel
 
         return (bool) $model->save();
     }
+
+    public static function getPaginated(int $limit = 50, int $offset = 0, string $datePrinted = ''): array
+    {
+        self::ensureTableExists();
+
+        $where = '';
+        if (!empty($datePrinted)) {
+            $datePrinted = pSQL($datePrinted);
+            $where = " WHERE DATE(b.`date_printed`) = '{$datePrinted}' OR b.`date_printed` LIKE '{$datePrinted}%'";
+        }
+
+        $sql = 'SELECT b.*, sr.`execution_code`, sr.`execution_message`, sr.`sandbox`
+                FROM `' . _DB_PREFIX_ . 'brt_restapi_bordero` b
+                LEFT JOIN `' . _DB_PREFIX_ . 'brt_restapi_shipment_response` sr
+                    ON (sr.`id_order` = b.`id_order` OR (b.`id_order` = 0 AND sr.`numeric_sender_reference` = b.`numeric_sender_reference`))' .
+                $where . '
+                GROUP BY b.`id_brt_restapi_bordero`
+                ORDER BY b.`id_brt_restapi_bordero` DESC
+                LIMIT ' . (int) $limit . ' OFFSET ' . (int) $offset;
+
+        return \Db::getInstance()->executeS($sql) ?: [];
+    }
+
+    public static function getTotalCount(string $datePrinted = ''): int
+    {
+        self::ensureTableExists();
+
+        $where = '';
+        if (!empty($datePrinted)) {
+            $datePrinted = pSQL($datePrinted);
+            $where = " WHERE DATE(`date_printed`) = '{$datePrinted}' OR `date_printed` LIKE '{$datePrinted}%'";
+        }
+
+        return (int) \Db::getInstance()->getValue(
+            'SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'brt_restapi_bordero`' . $where
+        );
+    }
 }

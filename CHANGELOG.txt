@@ -1,3 +1,17 @@
+v1.5.30
+- Implementata la paginazione AJAX nel Registro Spedizioni BRT (Borderò) con conteggi totali e selezione numero record per pagina.
+- Riposizionata la toolbar della tabella ordini: pulsante BORDERÒ e gruppo Cambia Stato a sinistra, pulsanti filtri Cerca e Reset a destra.
+- Silenziata la finestra di dialogo al completamento con successo della creazione segnacollo, avviando direttamente la stampa PDF.
+- Aggiunta la visualizzazione della data di stampa sotto il badge "Stampato" in font monospaziato.
+- Inserito il filtro di ricerca per data di stampa (`date_printed`) nel Registro Spedizioni BRT.
+- Aggiunto il pulsante "Vedi" (con icona `visibility` e link `target="_blank"`) nella colonna Azioni per aprire l'ordine in una nuova scheda browser.
+- Esclusione automatica dalla tabella "Ordini da controllare" degli ordini già associati a borderò stampati (`is_printed = 1`).
+- Visualizzazione dell'indicatore di anomalia o errore BRT (`execution_message`) o "Segnacollo mancante" sotto il badge "Da Stampare" per identificare subito le spedizioni non idonee al Borderò.
+- Cambio automatico dello stato degli ordini allo stato configurato `MPBRTRESTAPI_ORDERSTATE_CHECK` tramite `OrderHistory` alla stampa del Borderò PDF.
+- Integrato il modale d'avviso di conferma prima della stampa del Borderò PDF in presenza di discrepanze tra ordini in stato spedizione e segnacolli generati.
+- Registrazione automatica dei log via `PrestaShopLogger` alla cancellazione della spedizione (`#btnBrtDeleteShipment`) comprensiva di data/ora, `numericSenderReference` e nome/ID dell'operatore.
+- Registrazione automatica dei log via `PrestaShopLogger` alla creazione della spedizione (`#btnBrtCreateShipment`) comprensiva del testo della risposta/messaggio di esito BRT, data/ora, `numericSenderReference` e nome/ID dell'operatore.
+
 v1.5.29
 - Aggiunta la sezione "Controllo Spedizioni", colonne "Totale Ordine" e "Contrassegno" con footer tfoot dei totali sia per la tabella Borderò che per la tabella Controllo Spedizioni, e banner per la verifica delle discrepanze sui segnacolli.
 

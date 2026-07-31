@@ -42,6 +42,22 @@ Il modulo `mpbrtrestapishipments` consente di integrare i servizi di spedizione 
 
 ## Changelog
 
+### 1.5.30
+
+- **Paginazione & Filtro Data di Stampa Registro Spedizioni BRT**:
+  - Implementata la paginazione ed il recupero asincrono AJAX (`getPaginated`, `getTotalCount`) nel Registro Spedizioni BRT (Borderò) con scelta del limite record per pagina (20, 50, 100).
+  - Riposizionata la toolbar della tabella ordini (`AdminTableOrders`): pulsante `BORDERÒ` ed `input-group` di cambio stato a sinistra, filtri `Cerca` e `Reset` a destra.
+  - Silenziato il dialog modale al completamento con successo della creazione segnacollo, avviando direttamente la stampa dell'etichetta PDF.
+  - Inserita la visualizzazione della data di stampa (`date_printed`) sotto il badge verde `Stampato` in font monospaziato di dimensione ridotta.
+  - Aggiunta la casella di ricerca con calendario nativo ed il filtro backend `DATE(date_printed)` nel Registro Spedizioni BRT.
+  - Aggiunto il pulsante **"Vedi"** (con icona `visibility` e link `target="_blank"`) nella colonna Azioni per aprire l'ordine in una nuova scheda browser.
+  - Esclusi automaticamente dalla tabella **"Ordini da controllare"** tutti gli ordini che risultano già inseriti ed elaborati in borderò stampati (`is_printed = 1`).
+  - Inserita la visualizzazione esplicita delle anomalie o del messaggio d'errore BRT (`execution_message`) / badge *"Segnacollo mancante"* sotto l'indicatore **"Da Stampare"** nel Registro Spedizioni BRT.
+  - Implementato l'aggiornamento automatico dello stato dell'ordine allo stato configurato `MPBRTRESTAPI_ORDERSTATE_CHECK` tramite `OrderHistory` al momento della stampa del Borderò PDF.
+  - Integrata l'intercettazione del pulsante *"Stampa Borderò Giornaliero PDF"* con modale d'avviso e conferma prima dell'apertura del PDF qualora vengano rilevate discrepanze tra gli ordini e i segnacolli.
+  - Implementato il tracciamento dei log di sistema via `PrestaShopLogger` alla pressione del pulsante **"Annulla Spedizione"** (`#btnBrtDeleteShipment`), registrando data, `numericSenderReference` ed operatore che ha eseguito l'eliminazione.
+  - Aggiunta la registrazione dettagliata dei log di sistema via `PrestaShopLogger` alla creazione della spedizione (`#btnBrtCreateShipment`), includendo il testo del messaggio di risposta di Bartolini (`executionMessage` / error), la data, il `numericSenderReference` e l'operatore che ha effettuato la richiesta.
+
 ### 1.5.29
 
 - **Sezione "Controllo Spedizioni" e Quadratura Totali (`AdminMpBrtRestApiShipmentsController.php` & `tab_shipments.html.twig`)**:

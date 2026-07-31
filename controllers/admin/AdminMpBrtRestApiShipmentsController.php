@@ -116,6 +116,11 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
                 SELECT o.`id_order`, o.`reference`, o.`date_add`, o.`total_paid_tax_incl`, o.`module`, o.`payment`
                 FROM `' . _DB_PREFIX_ . 'orders` o
                 WHERE o.`current_state` = ' . (int) $orderStateChange . '
+                  AND NOT EXISTS (
+                      SELECT 1 FROM `' . _DB_PREFIX_ . 'brt_restapi_bordero` b
+                      WHERE (b.`id_order` = o.`id_order` OR (b.`id_order` = 0 AND b.`numeric_sender_reference` = CAST(o.`id_order` AS CHAR)))
+                        AND b.`is_printed` = 1
+                  )
                 ORDER BY o.`id_order` ASC
             ') ?: [];
 
@@ -161,9 +166,19 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
             'is_ok' => $checkPassed,
         ];
 
+        $borderoLimit = (int) Tools::getValue('bordero_limit', 50);
+        $borderoPage = (int) Tools::getValue('bordero_page', 1);
+        if ($borderoPage < 1) {
+            $borderoPage = 1;
+        }
+        $borderoOffset = ($borderoPage - 1) * $borderoLimit;
+        $borderoShipments = ModelBrtRestApiBordero::getPaginated($borderoLimit, $borderoOffset);
+        $borderoTotal = ModelBrtRestApiBordero::getTotalCount();
+        $borderoTotalPages = $borderoLimit > 0 ? (int) ceil($borderoTotal / $borderoLimit) : 1;
+
         $params = [
             'admin_url' => $adminUrl,
-            'admin_url_orders' => $this->context->link->getAdminLink('AdminOrders'),
+            'admin_url_orders' => $this->getOrderViewUrlTemplate(),
             'current_tab' => $currentTab,
             'config' => $config,
             'order_states' => OrderState::getOrderStates($idLang),
@@ -180,7 +195,11 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
             'pricing_rules' => $pricingRules,
             'pricing_default_code' => $config[BrtConfig::PRICING_DEFAULT_CODE] ?: '020',
             'available_fields' => \MpSoft\MpBrtRestApiShipments\Helpers\BrtPricingRuleParser::getAvailableFields(),
-            'tab_shipments' => ModelBrtRestApiShipmentResponse::getAll(50, 0),
+            'tab_shipments' => $borderoShipments,
+            'bordero_shipments_total' => $borderoTotal,
+            'bordero_shipments_page' => $borderoPage,
+            'bordero_shipments_limit' => $borderoLimit,
+            'bordero_shipments_total_pages' => $borderoTotalPages,
             'tab_bordero' => $tabBordero,
             'tab_check_orders' => $checkOrders,
             'check_summary' => $checkSummary,
@@ -292,6 +311,28 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
             $batchId = time();
             $ids = array_column($shipments, 'id_brt_restapi_bordero');
             ModelBrtRestApiBordero::markAsPrinted($ids, $batchId);
+
+            $orderStateCheck = (int) \Configuration::get(\MpSoft\MpBrtRestApiShipments\Helpers\BrtConfig::ORDERSTATE_CHECK);
+            if ($orderStateCheck > 0) {
+                $employeeId = (isset($this->context->employee) && $this->context->employee->id) ? (int) $this->context->employee->id : 0;
+                foreach ($shipments as $ship) {
+                    $idOrder = (int) ($ship['id_order'] ?: $ship['numeric_sender_reference']);
+                    if ($idOrder > 0) {
+                        $order = new \Order($idOrder);
+                        if (\Validate::isLoadedObject($order) && (int) $order->current_state !== $orderStateCheck) {
+                            try {
+                                $history = new \OrderHistory();
+                                $history->id_order = (int) $order->id;
+                                $history->id_employee = $employeeId;
+                                $history->changeIdOrderState($orderStateCheck, (int) $order->id);
+                                $history->addWithemail(true);
+                            } catch (\Exception $e) {
+                                \PrestaShopLogger::addLog('Error updating order state on bordero print: ' . $e->getMessage(), 3);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         \MpSoft\MpBrtRestApiShipments\Helpers\BrdPdfGenerator::renderPdf($shipments, $batchId);
@@ -613,12 +654,89 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
                 }
             }
 
+            // Log dell'operazione di creazione spedizione via PrestaShopLogger
+            $employeeName = 'Operatore sconosciuto';
+            $employeeId = 0;
+            if (isset($this->context->employee) && \Validate::isLoadedObject($this->context->employee)) {
+                $employeeId = (int) $this->context->employee->id;
+                $employeeName = trim($this->context->employee->firstname . ' ' . $this->context->employee->lastname) . " (ID #{$employeeId})";
+            }
+
+            $dateFormatted = date('Y-m-d H:i:s');
+            $statusStr = !empty($result['success']) ? 'RIUSCITO' : 'FALLITO';
+
+            $responseText = '';
+            if (!empty($result['data'])) {
+                $jsonResp = json_encode($result['data'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                if (strlen($jsonResp) > 1000) {
+                    if (isset($result['data']['createResponse']['executionMessage'])) {
+                        $jsonResp = json_encode($result['data']['createResponse']['executionMessage'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    } else {
+                        $jsonResp = substr($jsonResp, 0, 1000) . '... [TRUNCATED]';
+                    }
+                }
+                $responseText = " - Risposta BRT: " . $jsonResp;
+            }
+            if (!empty($result['error'])) {
+                $responseText .= " - Errore: " . $result['error'];
+            }
+
+            $logMessage = sprintf(
+                "Creazione Spedizione BRT [%s] - Data: %s - Ref. Mittente (numericSenderReference): %d%s - ID Ordine: %d - Operatore: %s%s",
+                $statusStr,
+                $dateFormatted,
+                $numericRef,
+                $alphanumericRef ? " (Alfa: {$alphanumericRef})" : '',
+                (int) $idOrder,
+                $employeeName,
+                $responseText
+            );
+
+            $severity = !empty($result['success']) ? 1 : 2;
+
+            \PrestaShopLogger::addLog(
+                $logMessage,
+                $severity,
+                null,
+                'Order',
+                (int) ($idOrder ?: $numericRef),
+                true,
+                $employeeId
+            );
+
             die(json_encode([
                 'success' => $result['success'],
                 'data' => $result['data'],
                 'error' => $result['error'],
             ]));
         } catch (\Exception $e) {
+            $employeeName = 'Operatore sconosciuto';
+            $employeeId = 0;
+            if (isset($this->context->employee) && \Validate::isLoadedObject($this->context->employee)) {
+                $employeeId = (int) $this->context->employee->id;
+                $employeeName = trim($this->context->employee->firstname . ' ' . $this->context->employee->lastname) . " (ID #{$employeeId})";
+            }
+
+            $dateFormatted = date('Y-m-d H:i:s');
+            $logMessage = sprintf(
+                "Creazione Spedizione BRT [ECCEZIONE] - Data: %s - Ref. Mittente (numericSenderReference): %d - ID Ordine: %d - Operatore: %s - Errore: %s",
+                $dateFormatted,
+                $numericRef,
+                (int) $idOrder,
+                $employeeName,
+                $e->getMessage()
+            );
+
+            \PrestaShopLogger::addLog(
+                $logMessage,
+                3,
+                null,
+                'Order',
+                (int) ($idOrder ?: $numericRef),
+                true,
+                $employeeId
+            );
+
             die(json_encode(['success' => false, 'error' => $e->getMessage()]));
         }
     }
@@ -687,8 +805,69 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
                 $senderCustomerCode = (int) Configuration::get($sandbox ? 'MPBRTRESTAPI_SANDBOX_CUSTOMER_CODE' : 'MPBRTRESTAPI_ACCOUNT_CUSTOMER_CODE');
             }
             $result = $client->deleteShipment($senderCustomerCode, $numericSenderReference, $alphanumericSenderReference);
+
+            // Log dell'operazione di annullamento spedizione via PrestaShopLogger
+            $employeeName = 'Operatore sconosciuto';
+            $employeeId = 0;
+            if (isset($this->context->employee) && \Validate::isLoadedObject($this->context->employee)) {
+                $employeeId = (int) $this->context->employee->id;
+                $employeeName = trim($this->context->employee->firstname . ' ' . $this->context->employee->lastname) . " (ID #{$employeeId})";
+            }
+
+            $dateFormatted = date('Y-m-d H:i:s');
+            $status = !empty($result['success']) ? 'RIUSCITO' : 'FALLITO';
+            $errorInfo = !empty($result['error']) ? " - Errore: {$result['error']}" : '';
+
+            $logMessage = sprintf(
+                "Annullamento Spedizione BRT [%s] - Data: %s - Riferimento Mittente (numericSenderReference): %d%s - Operatore: %s%s",
+                $status,
+                $dateFormatted,
+                $numericSenderReference,
+                $alphanumericSenderReference ? " (Alfa: {$alphanumericSenderReference})" : '',
+                $employeeName,
+                $errorInfo
+            );
+
+            $severity = !empty($result['success']) ? 1 : 2;
+
+            \PrestaShopLogger::addLog(
+                $logMessage,
+                $severity,
+                null,
+                'Order',
+                $numericSenderReference,
+                true,
+                $employeeId
+            );
+
             die(json_encode($result));
         } catch (\Exception $e) {
+            $employeeName = 'Operatore sconosciuto';
+            $employeeId = 0;
+            if (isset($this->context->employee) && \Validate::isLoadedObject($this->context->employee)) {
+                $employeeId = (int) $this->context->employee->id;
+                $employeeName = trim($this->context->employee->firstname . ' ' . $this->context->employee->lastname) . " (ID #{$employeeId})";
+            }
+
+            $dateFormatted = date('Y-m-d H:i:s');
+            $logMessage = sprintf(
+                "Annullamento Spedizione BRT [ECCEZIONE] - Data: %s - Riferimento Mittente (numericSenderReference): %d - Operatore: %s - Errore: %s",
+                $dateFormatted,
+                $numericSenderReference,
+                $employeeName,
+                $e->getMessage()
+            );
+
+            \PrestaShopLogger::addLog(
+                $logMessage,
+                3,
+                null,
+                'Order',
+                $numericSenderReference,
+                true,
+                $employeeId
+            );
+
             die(json_encode(['success' => false, 'error' => $e->getMessage()]));
         }
     }
@@ -698,6 +877,46 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
     public function ajaxProcessPrintBordero()
     {
         $this->processPrintBordero();
+    }
+
+    // ─── AJAX: Get Borderò Shipments for Registro Spedizioni ─────────────────────
+
+    public function ajaxProcessGetBorderoShipments()
+    {
+        $page = (int) Tools::getValue('page', 1);
+        $limit = (int) Tools::getValue('limit', 50);
+        $datePrinted = trim((string) Tools::getValue('date_printed', ''));
+        if ($page < 1) {
+            $page = 1;
+        }
+        if ($limit < 1) {
+            $limit = 50;
+        }
+
+        $offset = ($page - 1) * $limit;
+        $records = ModelBrtRestApiBordero::getPaginated($limit, $offset, $datePrinted);
+        $total = ModelBrtRestApiBordero::getTotalCount($datePrinted);
+        $totalPages = $limit > 0 ? (int) ceil($total / $limit) : 1;
+
+        die(json_encode([
+            'success' => true,
+            'data' => $records,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+            'total_pages' => $totalPages,
+            'date_printed' => $datePrinted,
+            'admin_url_orders' => $this->getOrderViewUrlTemplate(),
+        ]));
+    }
+
+    protected function getOrderViewUrlTemplate(): string
+    {
+        try {
+            return $this->context->link->getAdminLink('AdminOrders', true, ['route' => 'admin_orders_view', 'orderId' => '999999999']);
+        } catch (\Exception $e) {
+            return $this->context->link->getAdminLink('AdminOrders') . '&id_order=999999999&vieworder';
+        }
     }
 
     // ─── AJAX: Routing ───────────────────────────────────────────────────────────

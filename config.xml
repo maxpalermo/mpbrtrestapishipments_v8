@@ -2,7 +2,7 @@
 <module>
     <name>mpbrtrestapishipments</name>
     <displayName><![CDATA[BRT Rest API Shipments & Tracking]]></displayName>
-    <version><![CDATA[1.5.29]]></version>
+    <version><![CDATA[1.5.30]]></version>
     <description><![CDATA[Gestione spedizioni e tracking BRT tramite REST API ufficiali.]]></description>
     <author><![CDATA[Massimiliano Palermo]]></author>
     <tab><![CDATA[shipping_logistics]]></tab>

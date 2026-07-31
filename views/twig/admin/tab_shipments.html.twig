@@ -6,7 +6,7 @@
 			Borderò Spedizioni (Da Stampare)
 		</h3>
 		{% if tab_bordero %}
-			<a href="{{ admin_url }}&action=printBordero" target="_blank" class="btn btn-success btn-sm">
+			<a href="{{ admin_url }}&action=printBordero" target="_blank" class="btn btn-success btn-sm" onclick="return handlePrintBorderoClick(event, '{{ admin_url }}&action=printBordero', {{ check_summary.is_ok ? 'true' : 'false' }});">
 				<i class="material-icons">print</i>
 				Stampa Borderò Giornaliero PDF
 			</a>
@@ -163,7 +163,7 @@
 	<div class="card-header d-flex justify-content-between align-items-center">
 		<h3 class="mb-0">
 			<i class="material-icons mr-1">fact_check</i>
-			Controllo Spedizioni (Ordini nello Stato di Spedizione)
+			Ordini da controllare
 		</h3>
 		<span class="badge badge-secondary">
 			{{ tab_check_orders|length }}
@@ -180,6 +180,7 @@
 						<th>Data</th>
 						<th class="text-right">Totale da Pagare</th>
 						<th class="text-right">Contrassegno</th>
+						<th class="text-right">Azioni</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -187,7 +188,7 @@
 						{% for o in tab_check_orders %}
 							<tr>
 								<td>
-									<a href="{{ admin_url_orders }}&id_order={{ o.id_order }}&vieworder" target="_blank" class="font-weight-bold">
+									<a href="{{ '999999999' in admin_url_orders ? admin_url_orders|replace({'999999999': o.id_order}) : (admin_url_orders ~ '&id_order=' ~ o.id_order ~ '&vieworder') }}" target="_blank" class="font-weight-bold">
 										#{{ o.id_order }}
 									</a>
 								</td>
@@ -209,11 +210,16 @@
 										<span class="text-muted">-</span>
 									{% endif %}
 								</td>
+								<td class="text-right">
+									<a href="{{ '999999999' in admin_url_orders ? admin_url_orders|replace({'999999999': o.id_order}) : (admin_url_orders ~ '&id_order=' ~ o.id_order ~ '&vieworder') }}" target="_blank" class="btn btn-outline-info btn-sm" title="Vedi ordine in una nuova scheda">
+										<i class="material-icons" style="font-size:14px;vertical-align:middle;">visibility</i> Vedi
+									</a>
+								</td>
 							</tr>
 						{% endfor %}
 					{% else %}
 						<tr>
-							<td colspan="5" class="text-center py-4 text-muted">
+							<td colspan="6" class="text-center py-4 text-muted">
 								<i class="material-icons d-block mb-1" style="font-size:32px;">info</i>
 								Nessun ordine trovato nello stato impostato per la spedizione.
 							</td>
@@ -233,6 +239,7 @@
 								€
 								{{ check_summary.check_total_cod|number_format(2, ',', '.') }}
 							</td>
+							<td></td>
 						</tr>
 					</tfoot>
 				{% endif %}
@@ -241,14 +248,26 @@
 	</div>
 </div>
 
-{# Registro Spedizioni BRT #}
-<div class="card">
+{# Registro Spedizioni BRT (Borderò) #}
+<div class="card" id="brt_bordero_register_card">
 	<div class="card-header d-flex justify-content-between align-items-center">
-		<h3 class="mb-0">
+		<h3 class="mb-0 d-flex align-items-center">
 			<i class="material-icons mr-1">local_shipping</i>
-			Registro Spedizioni BRT (Ultimi 50 record)
+			Registro Spedizioni BRT (Borderò)
+			<span class="badge badge-info ml-2" id="brtBorderoHeaderBadge">{{ bordero_shipments_total }} record</span>
 		</h3>
 		<div class="d-flex align-items-center gap-2">
+			<div class="input-group input-group-sm" style="max-width: 250px;">
+				<div class="input-group-prepend">
+					<span class="input-group-text" title="Filtra per data di stampa"><i class="material-icons" style="font-size:16px">event</i></span>
+				</div>
+				<input type="date" id="brtBorderoDatePrintedSearch" class="form-control form-control-sm" placeholder="Data di stampa" title="Seleziona data di stampa" onchange="if(window.brtBorderoPagination) window.brtBorderoPagination.searchByDatePrinted(this.value)">
+				<div class="input-group-append">
+					<button type="button" class="btn btn-outline-secondary btn-sm" title="Reset data" onclick="const input = document.getElementById('brtBorderoDatePrintedSearch'); if(input){ input.value=''; } if(window.brtBorderoPagination) window.brtBorderoPagination.searchByDatePrinted('');">
+						<i class="material-icons" style="font-size:14px">close</i>
+					</button>
+				</div>
+			</div>
 			<button type="button" class="btn btn-default" onclick="brtRestApiNewManualShipment()">
 				<i class="material-icons mr-1">add</i>
 				NUOVO SEGNACOLLO
@@ -257,38 +276,44 @@
 				<i class="material-icons mr-1">add_shopping_cart</i>
 				NUOVO SEGNACOLLO DA ORDINE
 			</button>
-			<button type="button" class="btn btn-default" onclick="location.reload();">
+			<button type="button" class="btn btn-default" onclick="if(window.brtBorderoPagination) window.brtBorderoPagination.loadPage(1); else location.reload();">
 				<i class="material-icons mr-1">refresh</i>
 				Aggiorna
 			</button>
 		</div>
 	</div>
-	<div class="card-body p-0">
+	<div class="card-body p-0 style-override-relative" style="position: relative;">
+		<div id="brtBorderoLoadingOverlay" class="d-none position-absolute w-100 h-100 justify-content-center align-items-center" style="top:0;left:0;background:rgba(255,255,255,0.75);z-index:10;">
+			<div class="spinner-border text-primary" role="status">
+				<span class="sr-only">Caricamento in corso...</span>
+			</div>
+		</div>
 		<div class="table-responsive">
-			<table class="table table-striped table-hover mb-0">
+			<table class="table table-striped table-hover mb-0" id="brtBorderoTable">
 				<thead class="thead-light">
 					<tr>
 						<th>#</th>
-						<th>Ordine</th>
+						<th>Rif. Ordine</th>
 						<th>Rif. Numerico</th>
 						<th>Rif. Alfanumerico</th>
-						<th>Colli</th>
-						<th>Filiale / Depot</th>
-						<th>Zona</th>
-						<th>Esito</th>
-						<th>Ambiente</th>
+						<th>Destinatario</th>
+						<th>Città</th>
+						<th>Colli / Range</th>
+						<th class="text-right">Peso</th>
+						<th class="text-right">Contrassegno</th>
+						<th class="text-center">Stampa Borderò</th>
 						<th>Data</th>
 						<th class="text-right">Azioni</th>
 					</tr>
 				</thead>
-				<tbody>
+				<tbody id="brtBorderoTableBody">
 					{% if tab_shipments %}
 						{% for ship in tab_shipments %}
 							<tr>
-								<td>{{ ship.id_brt_restapi_shipment_response }}</td>
+								<td>{{ ship.id_brt_restapi_bordero }}</td>
 								<td>
 									{% if ship.id_order %}
-										<a href="{{ admin_url_orders }}&id_order={{ ship.id_order }}&vieworder" target="_blank" class="font-weight-bold">
+										<a href="{{ '999999999' in admin_url_orders ? admin_url_orders|replace({'999999999': ship.id_order}) : (admin_url_orders ~ '&id_order=' ~ ship.id_order ~ '&vieworder') }}" target="_blank" class="font-weight-bold">
 											#{{ ship.id_order }}
 										</a>
 									{% else %}
@@ -299,58 +324,63 @@
 									<code>{{ ship.numeric_sender_reference }}</code>
 								</td>
 								<td>{{ ship.alphanumeric_sender_reference|e }}</td>
+								<td>{{ ship.consignee_company_name|e }}</td>
+								<td>{{ ship.consignee_city|e }}</td>
 								<td>
 									{% if ship.parcel_number_from %}
-										<span class="badge badge-info">{{ ship.parcel_number_from }}
-											→
-											{{ ship.parcel_number_to }}</span>
+										<span class="badge badge-info">{{ ship.parcel_number_from }} → {{ ship.parcel_number_to }}</span>
 									{% else %}
-										<span class="text-muted">—</span>
+										<span class="badge badge-secondary">{{ ship.number_of_parcels }} colli</span>
 									{% endif %}
 								</td>
-								<td>
-									{% if ship.arrival_depot %}
-										<span>{{ ship.arrival_depot }}
-											/
-											{{ ship.arrival_terminal }}</span>
+								<td class="text-right">{{ ship.weight_kg }} kg</td>
+								<td class="text-right">
+									{% if ship.cash_on_delivery > 0 %}
+										<span class="badge badge-warning">€ {{ ship.cash_on_delivery|number_format(2, ',', '.') }}</span>
 									{% else %}
-										<span class="text-muted">—</span>
+										<span class="text-muted">-</span>
 									{% endif %}
 								</td>
-								<td>
-									{% if ship.delivery_zone %}
-										<span class="badge badge-secondary">{{ ship.delivery_zone }}</span>
+								<td class="text-center">
+									{% if ship.is_printed %}
+										<div>
+											<span class="badge badge-success" title="Stampato il {{ ship.date_printed }}">
+												<i class="material-icons" style="font-size:12px">check_circle</i> Stampato
+											</span>
+										</div>
+										{% if ship.date_printed %}
+											<div style="font-family: monospace; font-size: 11px; color: #6c757d; margin-top: 2px;">
+												{{ ship.date_printed }}
+											</div>
+										{% endif %}
 									{% else %}
-										<span class="text-muted">—</span>
-									{% endif %}
-								</td>
-								<td>
-									{% if ship.execution_code == 0 %}
-										<span class="badge badge-success">
-											<i class="material-icons" style="font-size:12px">check</i>
-											OK</span>
-									{% else %}
-										<span class="badge badge-danger" title="{{ ship.execution_message|e }}">
-											<i class="material-icons" style="font-size:12px">error</i>
-											{{ ship.execution_code }}
-										</span>
-									{% endif %}
-								</td>
-								<td>
-									{% if ship.sandbox %}
-										<span class="badge badge-warning">
-											<i class="material-icons" style="font-size:12px">science</i>
-											Sandbox</span>
-									{% else %}
-										<span class="badge badge-success">
-											<i class="material-icons" style="font-size:12px">verified</i>
-											Prod</span>
+										<div>
+											<span class="badge badge-warning">
+												<i class="material-icons" style="font-size:12px">schedule</i> Da Stampare
+											</span>
+										</div>
+										{% if ship.execution_message and ship.execution_code is defined and ship.execution_code != 0 %}
+											<div style="font-size: 11px; color: #dc3545; margin-top: 2px;" title="{{ ship.execution_message }}">
+												<i class="material-icons" style="font-size: 11px; vertical-align: middle;">error_outline</i>
+												{{ ship.execution_message|length > 35 ? ship.execution_message|slice(0, 35) ~ '...' : ship.execution_message }}
+											</div>
+										{% elseif not ship.parcel_number_from %}
+											<div style="font-size: 11px; color: #fd7e14; margin-top: 2px;" title="Segnacollo non generato">
+												<i class="material-icons" style="font-size: 11px; vertical-align: middle;">warning</i>
+												Segnacollo mancante
+											</div>
+										{% endif %}
 									{% endif %}
 								</td>
 								<td>
 									<small class="text-muted">{{ ship.date_add }}</small>
 								</td>
 								<td class="text-right">
+									{% if ship.id_order %}
+										<a href="{{ '999999999' in admin_url_orders ? admin_url_orders|replace({'999999999': ship.id_order}) : (admin_url_orders ~ '&id_order=' ~ ship.id_order ~ '&vieworder') }}" target="_blank" class="btn btn-outline-primary btn-sm" title="Vedi ordine in una nuova scheda">
+											<i class="material-icons">visibility</i>
+										</a>
+									{% endif %}
 									<button class="btn btn-outline-info btn-sm btn-get-label" data-numeric="{{ ship.numeric_sender_reference }}" title="Stampa etichetta segnacollo">
 										<i class="material-icons">print</i>
 									</button>
@@ -362,9 +392,9 @@
 						{% endfor %}
 					{% else %}
 						<tr>
-							<td colspan="11" class="text-center py-4 text-muted">
+							<td colspan="12" class="text-center py-4 text-muted">
 								<i class="material-icons d-block mb-1" style="font-size:32px">local_shipping</i>
-								Nessuna spedizione trovata nel registro.
+								Nessuna spedizione trovata nel registro del borderò.
 							</td>
 						</tr>
 					{% endif %}
@@ -372,4 +402,106 @@
 			</table>
 		</div>
 	</div>
+	<div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap py-2">
+		<div class="d-flex align-items-center">
+			<span class="mr-2 small text-muted">Record per pagina:</span>
+			<select id="brtBorderoPageSize" class="form-control form-control-sm custom-select" style="width: auto;" onchange="brtBorderoPagination.changeLimit(this.value)">
+				<option value="20"{% if bordero_shipments_limit == 20 %} selected{% endif %}>20</option>
+				<option value="50"{% if bordero_shipments_limit == 50 %} selected{% endif %}>50</option>
+				<option value="100"{% if bordero_shipments_limit == 100 %} selected{% endif %}>100</option>
+			</select>
+			<span id="brtBorderoPaginationInfo" class="text-muted small ml-3">
+				{% set start_count = (bordero_shipments_page - 1) * bordero_shipments_limit + 1 %}
+				{% set end_count = bordero_shipments_page * bordero_shipments_limit %}
+				{% if end_count > bordero_shipments_total %}{% set end_count = bordero_shipments_total %}{% endif %}
+				Mostrati <strong>{{ start_count }}</strong> - <strong>{{ end_count }}</strong> di <strong>{{ bordero_shipments_total }}</strong> record
+			</span>
+		</div>
+		<nav>
+			<ul class="pagination pagination-sm mb-0" id="brtBorderoPaginationList" data-current-page="{{ bordero_shipments_page }}" data-total-pages="{{ bordero_shipments_total_pages }}">
+				{# Paginazione generata dinamicamente da JS #}
+			</ul>
+		</nav>
+	</div>
 </div>
+
+{# Modale di Avviso Discrepanza Borderò #}
+<dialog id="brtBorderoDiscrepancyModal" style="border:none; border-radius:8px; padding:0; max-width:550px; width:90%; box-shadow: 0 10px 35px rgba(0,0,0,0.35); background: transparent;">
+	<div class="card mb-0 border-0 shadow">
+		<div class="card-header bg-danger text-white d-flex align-items-center justify-content-between">
+			<h4 class="mb-0 text-white font-weight-bold d-flex align-items-center" style="color: #fff;">
+				<i class="material-icons mr-2" style="font-size:24px;">warning</i>
+				Discrepanza Rilevata nel Borderò
+			</h4>
+			<button type="button" class="close text-white" style="opacity: 0.9;" onclick="closeBorderoDiscrepancyModal()">&times;</button>
+		</div>
+		<div class="card-body p-4">
+			<p class="text-dark font-weight-bold mb-3">
+				ATTENZIONE! I totali degli ordini nello stato di spedizione non coincidono con i segnacolli del Borderò da stampare:
+			</p>
+			<div class="p-3 bg-light rounded border mb-3 small">
+				<div class="d-flex justify-content-between mb-1">
+					<span>Ordini in Stato Spedizione:</span>
+					<strong>{{ check_summary.check_count }} (€ {{ check_summary.check_total_order|number_format(2, ',', '.') }})</strong>
+				</div>
+				<div class="d-flex justify-content-between mb-1">
+					<span>Segnacolli in Borderò:</span>
+					<strong>{{ check_summary.bordero_count }} (€ {{ check_summary.bordero_total_order|number_format(2, ',', '.') }})</strong>
+				</div>
+				<div class="d-flex justify-content-between text-danger font-weight-bold border-top pt-2 mt-2" style="font-size: 13px;">
+					<span>Differenza Ordini / Totale:</span>
+					<span>{{ check_summary.diff_count }} ordini (€ {{ check_summary.diff_total_order|number_format(2, ',', '.') }})</span>
+				</div>
+			</div>
+			<p class="mb-0 text-muted small">
+				Alcuni ordini potrebbero non avere il segnacollo generato o presentare anomalie. Sei sicuro di voler proseguire con la stampa?
+			</p>
+		</div>
+		<div class="card-footer d-flex justify-content-between bg-light p-3">
+			<button type="button" class="btn btn-secondary btn-sm font-weight-bold" onclick="closeBorderoDiscrepancyModal()">
+				<i class="material-icons mr-1" style="font-size:16px;vertical-align:middle;">close</i> Annulla
+			</button>
+			<button type="button" class="btn btn-danger btn-sm font-weight-bold" onclick="proceedPrintBordero('{{ admin_url }}&action=printBordero')">
+				<i class="material-icons mr-1" style="font-size:16px;vertical-align:middle;">print</i> Stampa Comunque
+			</button>
+		</div>
+	</div>
+</dialog>
+
+<script>
+function handlePrintBorderoClick(event, printUrl, isOk) {
+	if (isOk) {
+		return true;
+	}
+	event.preventDefault();
+	const modal = document.getElementById('brtBorderoDiscrepancyModal');
+	if (modal) {
+		if (typeof modal.showModal === 'function') {
+			modal.showModal();
+		} else {
+			modal.style.display = 'block';
+		}
+	} else {
+		if (confirm('ATTENZIONE! Rilevata discrepanza tra ordini e segnacolli.\n\nSei sicuro di voler proseguire con la stampa del Borderò?')) {
+			window.open(printUrl, '_blank');
+		}
+	}
+	return false;
+}
+
+function closeBorderoDiscrepancyModal() {
+	const modal = document.getElementById('brtBorderoDiscrepancyModal');
+	if (modal) {
+		if (typeof modal.close === 'function') {
+			modal.close();
+		} else {
+			modal.style.display = 'none';
+		}
+	}
+}
+
+function proceedPrintBordero(printUrl) {
+	closeBorderoDiscrepancyModal();
+	window.open(printUrl, '_blank');
+}
+</script>
