@@ -244,9 +244,9 @@
 			Gestione Stati Ordine
 		</div>
 		<div class="card-body">
-			<div class="row align-items-end">
-				<div class="col-md-3">
-					<div class="form-group">
+			<div class="row align-items-end mb-3">
+				<div class="col-md-4">
+					<div class="form-group mb-md-0">
 						<label class="form-control-label">Mostra pulsante BRT negli ordini con questi stati</label>
 						<select class="form-control chosen" name="MPBRTRESTAPI_ORDERSTATES_DISPLAY[]" multiple data-placeholder="Seleziona stati ordine...">
 							{% for state in order_states %}
@@ -257,8 +257,8 @@
 						</select>
 					</div>
 				</div>
-				<div class="col-md-3">
-					<div class="form-group">
+				<div class="col-md-4">
+					<div class="form-group mb-md-0">
 						<label class="form-control-label">Cambia stato ordine dopo la creazione spedizione</label>
 						<select class="form-control chosen" name="MPBRTRESTAPI_ORDERSTATE_CHANGE" data-placeholder="Nessun cambio automatico">
 							<option value="">-- Nessun cambio --</option>
@@ -270,8 +270,8 @@
 						</select>
 					</div>
 				</div>
-				<div class="col-md-3">
-					<div class="form-group">
+				<div class="col-md-4">
+					<div class="form-group mb-md-0">
 						<label class="form-control-label">Cambia stato ordine dopo il controllo borderò</label>
 						<select class="form-control chosen" name="MPBRTRESTAPI_ORDERSTATE_CHECK" data-placeholder="Nessun cambio automatico">
 							<option value="">-- Nessun cambio --</option>
@@ -281,6 +281,36 @@
 								</option>
 							{% endfor %}
 						</select>
+					</div>
+				</div>
+			</div>
+
+			<hr class="my-4">
+			<h5 class="font-weight-bold text-dark mb-3" style="font-size: 0.95rem;">
+				<i class="material-icons align-middle mr-1" style="font-size:18px;">rule</i>
+				Controllo Discrepanze Borderò
+			</h5>
+			<div class="row">
+				<div class="col-md-6">
+					<div class="custom-control custom-checkbox custom-switch mb-2">
+						<input type="checkbox" class="custom-control-input" id="MPBRTRESTAPI_CHECK_DISCREPANCY_ORDERS" name="MPBRTRESTAPI_CHECK_DISCREPANCY_ORDERS" value="1" {% if config.MPBRTRESTAPI_CHECK_DISCREPANCY_ORDERS %} checked {% endif %}>
+						<label class="custom-control-label font-weight-bold" for="MPBRTRESTAPI_CHECK_DISCREPANCY_ORDERS">
+							Controlla discrepanze sugli ordini
+						</label>
+						<small class="form-text text-muted">
+							Verifica la corrispondenza tra il numero e i totali degli ordini in stato spedizione e i segnacolli nel Borderò.
+						</small>
+					</div>
+				</div>
+				<div class="col-md-6">
+					<div class="custom-control custom-checkbox custom-switch mb-2">
+						<input type="checkbox" class="custom-control-input" id="MPBRTRESTAPI_CHECK_DISCREPANCY_COD" name="MPBRTRESTAPI_CHECK_DISCREPANCY_COD" value="1" {% if config.MPBRTRESTAPI_CHECK_DISCREPANCY_COD %} checked {% endif %}>
+						<label class="custom-control-label font-weight-bold" for="MPBRTRESTAPI_CHECK_DISCREPANCY_COD">
+							Controlla discrepanze sui contrassegni
+						</label>
+						<small class="form-text text-muted">
+							Verifica la corrispondenza del totale dei contrassegni (COD) tra ordini in stato spedizione e segnacolli nel Borderò.
+						</small>
 					</div>
 				</div>
 			</div>

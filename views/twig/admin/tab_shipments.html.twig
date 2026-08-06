@@ -100,12 +100,12 @@
 </div>
 
 {# Banner Avviso Controllo Quadratura Totali #}
-{% if check_summary.is_ok %}
+{% if check_summary.check_disabled %}
+	{# Controllo discrepanze disattivato nelle impostazioni #}
+{% elseif check_summary.is_ok %}
 	<div class="alert alert-success d-flex align-items-center mb-4 p-3 style-override-alert">
-		<i class="material-icons mr-3" style="font-size: 32px; color: #155724;">verified</i>
 		<div>
 			<h5 class="alert-heading mb-1 font-weight-bold" style="color: #155724;">
-				<i class="material-icons align-middle mr-1" style="font-size:20px;">check_circle</i>
 				CONTROLLO SPEDIZIONI OK — NESSUNA DISCREPANZA
 			</h5>
 			<p class="mb-0 small">

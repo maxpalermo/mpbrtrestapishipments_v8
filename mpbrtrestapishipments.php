@@ -33,7 +33,7 @@ class MpBrtRestApiShipments extends Module
     {
         $this->name = 'mpbrtrestapishipments';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.5.30';
+        $this->version = '1.5.31';
         $this->author = 'Massimiliano Palermo';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '8.0', 'max' => '8.99'];

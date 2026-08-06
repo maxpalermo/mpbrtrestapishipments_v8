@@ -29,6 +29,9 @@ class BrtConfig
     const SENDER_PARCEL_TYPE = 'MPBRTRESTAPI_SENDER_PARCEL_TYPE';
     const COD_PAYMENT_MODULES = 'MPBRTRESTAPI_COD_PAYMENT_MODULES';
 
+    const CHECK_DISCREPANCY_ORDERS = 'MPBRTRESTAPI_CHECK_DISCREPANCY_ORDERS';
+    const CHECK_DISCREPANCY_COD = 'MPBRTRESTAPI_CHECK_DISCREPANCY_COD';
+
     const ORDERSTATES_DISPLAY = 'MPBRTRESTAPI_ORDERSTATES_DISPLAY';
     const ORDERSTATE_CHANGE = 'MPBRTRESTAPI_ORDERSTATE_CHANGE';
     const ORDERSTATE_CHECK = 'MPBRTRESTAPI_ORDERSTATE_CHECK';
@@ -85,11 +88,17 @@ class BrtConfig
             self::CONNECTOR_TOKEN,
             self::PRICING_RULES,
             self::PRICING_DEFAULT_CODE,
+            self::CHECK_DISCREPANCY_ORDERS,
+            self::CHECK_DISCREPANCY_COD,
         ];
 
         $result = [];
         foreach ($keys as $key) {
-            $result[$key] = \Configuration::get($key);
+            $val = \Configuration::get($key);
+            if (($key === self::CHECK_DISCREPANCY_ORDERS || $key === self::CHECK_DISCREPANCY_COD) && ($val === false || $val === null)) {
+                $val = 1;
+            }
+            $result[$key] = $val;
         }
 
         return $result;
@@ -141,7 +150,14 @@ class BrtConfig
             $ok = $ok && \Configuration::updateValue(self::PRICING_RULES, $val);
         }
 
-        $boolKeys = [self::SANDBOX_ENABLED, self::LABEL_BORDER, self::LABEL_LOGO, self::LABEL_BARCODE];
+        $boolKeys = [
+            self::SANDBOX_ENABLED,
+            self::LABEL_BORDER,
+            self::LABEL_LOGO,
+            self::LABEL_BARCODE,
+            self::CHECK_DISCREPANCY_ORDERS,
+            self::CHECK_DISCREPANCY_COD,
+        ];
         foreach ($boolKeys as $key) {
             $ok = $ok && \Configuration::updateValue($key, isset($data[$key]) ? 1 : 0);
         }

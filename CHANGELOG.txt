@@ -1,3 +1,7 @@
+v1.5.31
+- Inseriti due switch di configurazione "Controlla discrepanze sugli ordini" (`MPBRTRESTAPI_CHECK_ORDER_DISCREPANCIES`) e "Controlla discrepanze sui contrassegni" (`MPBRTRESTAPI_CHECK_COD_DISCREPANCIES`) nelle impostazioni del modulo.
+- La verifica ed il modale d'avviso delle discrepanze durante la creazione/stampa del Borderò avvengono in modo condizionale in base agli switch attivati; se entrambi disattivati, non viene effettuato alcun controllo.
+
 v1.5.30
 - Implementata la paginazione AJAX nel Registro Spedizioni BRT (Borderò) con conteggi totali e selezione numero record per pagina.
 - Riposizionata la toolbar della tabella ordini: pulsante BORDERÒ e gruppo Cambia Stato a sinistra, pulsanti filtri Cerca e Reset a destra.

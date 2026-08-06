@@ -147,10 +147,22 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
             }
         }
 
+        $checkOrdersEnabled = (bool) ($config[BrtConfig::CHECK_DISCREPANCY_ORDERS] ?? 1);
+        $checkCodEnabled = (bool) ($config[BrtConfig::CHECK_DISCREPANCY_COD] ?? 1);
+
         $orderTotalsMatch = (abs($borderoTotalOrder - $checkTotalOrder) < 0.01);
         $codTotalsMatch = (abs($borderoTotalCod - $checkTotalCod) < 0.01);
         $countsMatch = (count($tabBordero) === count($checkOrders));
-        $checkPassed = ($orderTotalsMatch && $codTotalsMatch && $countsMatch);
+
+        if (!$checkOrdersEnabled && !$checkCodEnabled) {
+            $checkPassed = true;
+        } elseif ($checkOrdersEnabled && $checkCodEnabled) {
+            $checkPassed = ($orderTotalsMatch && $codTotalsMatch && $countsMatch);
+        } elseif ($checkOrdersEnabled) {
+            $checkPassed = ($orderTotalsMatch && $countsMatch);
+        } else {
+            $checkPassed = $codTotalsMatch;
+        }
 
         $checkSummary = [
             'order_state_id' => $orderStateChange,
@@ -164,6 +176,9 @@ class AdminMpBrtRestApiShipmentsController extends ModuleAdminController
             'diff_total_order' => $checkTotalOrder - $borderoTotalOrder,
             'diff_total_cod' => $checkTotalCod - $borderoTotalCod,
             'is_ok' => $checkPassed,
+            'check_orders_enabled' => $checkOrdersEnabled,
+            'check_cod_enabled' => $checkCodEnabled,
+            'check_disabled' => (!$checkOrdersEnabled && !$checkCodEnabled),
         ];
 
         $borderoLimit = (int) Tools::getValue('bordero_limit', 50);
